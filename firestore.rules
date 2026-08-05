@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Función para verificar roles
+    function hasRole(role) {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    function isSuperAdmin() {
+      return hasRole('superadmin');
+    }
+
+    // Colección users
+    match /users/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
+      allow write: if isSuperAdmin();
+    }
+
+    // Colección web_content (Landing page public)
+    match /web_content/{document} {
+      allow read: if true; // Acceso público para ver landing
+      allow write: if isSuperAdmin();
+    }
+
+    // Colección teams (Equipos)
+    match /teams/{teamId} {
+      allow read: if isSuperAdmin() || hasRole('admin_futbol') || hasRole('admin_basquet');
+      allow write: if isSuperAdmin() || 
+                   (hasRole('admin_futbol') && request.resource.data.tournament == 'futbol') ||
+                   (hasRole('admin_basquet') && request.resource.data.tournament == 'basquet');
+      allow update, delete: if isSuperAdmin() || 
+                            (hasRole('admin_futbol') && resource.data.tournament == 'futbol') ||
+                            (hasRole('admin_basquet') && resource.data.tournament == 'basquet');
+    }
+
+    // Colección bar_products
+    match /bar_products/{productId} {
+      allow read: if isSuperAdmin() || hasRole('barista');
+      allow write: if isSuperAdmin();
+    }
+  }
+}
