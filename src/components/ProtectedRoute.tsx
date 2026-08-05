@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const { user, role, loading } = useAuth();
+  const { user, roles, loading } = useAuth();
 
   if (loading) {
     return <div className="h-screen flex items-center justify-center text-xl">Carregant...</div>;
@@ -18,13 +18,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
     return <Navigate to="/login" />;
   }
 
-  if (allowedRoles && role && !allowedRoles.includes(role)) {
-    // Si no té permisos, el redirigim al panell corresponent al seu rol o al login
-    if (role === 'superadmin') return <Navigate to="/admin" />;
-    if (role === 'barista') return <Navigate to="/bar" />;
-    if (role === 'admin_futbol') return <Navigate to="/futbol" />;
-    if (role === 'admin_basquet') return <Navigate to="/basquet" />;
-    return <Navigate to="/" />;
+  if (allowedRoles && (!roles || !roles.some(r => allowedRoles.includes(r)))) {
+    // Si no té permisos per aquesta ruta en concret, el redirigim a la primera que tingui permís
+    if (roles.includes('superadmin')) return <Navigate to="/admin" />;
+    if (roles.includes('barista')) return <Navigate to="/bar" />;
+    if (roles.includes('admin_futbol')) return <Navigate to="/futbol" />;
+    if (roles.includes('admin_basquet')) return <Navigate to="/basquet" />;
+    return <Navigate to="/" />; // Si no té cap d'aquests, torna a l'inici
   }
 
   return <>{children}</>;

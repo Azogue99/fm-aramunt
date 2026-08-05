@@ -3,9 +3,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Función para verificar roles
     function hasRole(role) {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return request.auth != null && userDoc != null && userDoc.data.roles != null && role in userDoc.data.roles;
     }
 
     function isSuperAdmin() {
@@ -14,22 +14,22 @@ service cloud.firestore {
 
     // Colección users
     match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
-      allow write: if isSuperAdmin();
+      allow read: if request.auth != null;
+      // Permetem als usuaris nous crear el seu perfil buit sense rols
+      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.roles.size() == 0;
+      allow update, delete: if isSuperAdmin();
     }
 
     // Colección web_content (Landing page public)
     match /web_content/{document} {
-      allow read: if true; // Acceso público para ver landing
+      allow read: if true;
       allow write: if isSuperAdmin();
     }
 
     // Colección teams (Equipos)
     match /teams/{teamId} {
-      allow read: if isSuperAdmin() || hasRole('admin_futbol') || hasRole('admin_basquet');
-      allow write: if isSuperAdmin() || 
-                   (hasRole('admin_futbol') && request.resource.data.tournament == 'futbol') ||
-                   (hasRole('admin_basquet') && request.resource.data.tournament == 'basquet');
+      allow read: if true;
+      allow create: if request.auth != null;
       allow update, delete: if isSuperAdmin() || 
                             (hasRole('admin_futbol') && resource.data.tournament == 'futbol') ||
                             (hasRole('admin_basquet') && resource.data.tournament == 'basquet');

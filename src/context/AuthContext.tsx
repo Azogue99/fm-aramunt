@@ -1,20 +1,20 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { type User, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
-export type UserRole = 'superadmin' | 'admin_futbol' | 'admin_basquet' | 'barista' | null;
+export type UserRole = 'superadmin' | 'admin_futbol' | 'admin_basquet' | 'barista';
 
 interface AuthContextType {
   user: User | null;
-  role: UserRole;
+  roles: UserRole[];
   loading: boolean;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  role: null,
+  roles: [],
   loading: true,
   signOut: async () => {},
 });
@@ -23,7 +23,7 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<UserRole>(null);
+  const [roles, setRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,18 +31,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(currentUser);
       if (currentUser) {
         try {
-          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-          if (userDoc.exists()) {
-            setRole(userDoc.data().role as UserRole);
-          } else {
-            setRole(null);
+          const userRef = doc(db, 'users', currentUser.uid);
+          let userDoc = await getDoc(userRef);
+          
+          // Si l'usuari no existeix, el creem automàticament sense rols perquè el Super-Admin el vegi
+          if (!userDoc.exists()) {
+            await setDoc(userRef, {
+              email: currentUser.email,
+              name: currentUser.displayName,
+              roles: []
+            });
+            userDoc = await getDoc(userRef);
           }
+
+          let fetchedRoles = userDoc.data()?.roles || [];
+          
+          // Suport per la migració de l'antic format de rol únic (role) a múltiple (roles)
+          if (userDoc.data()?.role && fetchedRoles.length === 0) {
+            fetchedRoles = [userDoc.data()?.role];
+          }
+
+          setRoles(fetchedRoles);
         } catch (error) {
-          console.error("Error fetching user role:", error);
-          setRole(null);
+          console.error("Error fetching user roles:", error);
+          setRoles([]);
         }
       } else {
-        setRole(null);
+        setRoles([]);
       }
       setLoading(false);
     });
@@ -55,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, loading, signOut }}>
+    <AuthContext.Provider value={{ user, roles, loading, signOut }}>
       {!loading && children}
     </AuthContext.Provider>
   );

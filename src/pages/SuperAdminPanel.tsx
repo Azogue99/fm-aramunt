@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc, collection, onSnapshot, addDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, onSnapshot, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -149,7 +149,6 @@ const ManageProducts = () => {
 
 const ManageUsers = () => {
   const [users, setUsers] = useState<any[]>([]);
-  const [newUser, setNewUser] = useState({ uid: '', role: 'barista' });
 
   useEffect(() => {
     return onSnapshot(collection(db, 'users'), (snap) => {
@@ -157,61 +156,64 @@ const ManageUsers = () => {
     });
   }, []);
 
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if(newUser.uid.trim() === '') return;
-    await setDoc(doc(db, 'users', newUser.uid), {
-      role: newUser.role
+  const handleAddRole = async (userId: string, role: string) => {
+    await updateDoc(doc(db, 'users', userId), {
+      roles: arrayUnion(role)
     });
-    setNewUser({ uid: '', role: 'barista' });
-    alert("Rol assignat. (L'usuari s'ha de crear prèviament a Firebase Auth)");
   };
 
-  const handleDelete = async (id: string) => {
-    if(confirm("Segur que vols eliminar aquest rol?")) {
-      await deleteDoc(doc(db, 'users', id));
+  const handleRemoveRole = async (userId: string, role: string) => {
+    if(confirm(`Segur que vols treure el rol ${role}?`)) {
+      await updateDoc(doc(db, 'users', userId), {
+        roles: arrayRemove(role)
+      });
     }
   };
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">Gestió de Rols</h2>
-      <p className="text-sm text-gray-500 mb-4">Nota: Els usuaris s'han de crear primer a Firebase Auth. Aquí els hi assignem els permisos indicant el seu UID.</p>
-      
-      <form onSubmit={handleAdd} className="flex gap-2 mb-6 items-end">
-        <div className="flex-1">
-          <label className="block text-sm">UID del Firebase Auth</label>
-          <input type="text" className="border rounded p-1 w-full" value={newUser.uid} onChange={e => setNewUser({...newUser, uid: e.target.value})} required />
-        </div>
-        <div>
-          <label className="block text-sm">Rol</label>
-          <select className="border rounded p-1" value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
-            <option value="superadmin">Super-Admin</option>
-            <option value="admin_futbol">Admin Futbol</option>
-            <option value="admin_basquet">Admin Bàsquet</option>
-            <option value="barista">Barista</option>
-          </select>
-        </div>
-        <button type="submit" className="bg-green-600 text-white px-4 py-1 rounded h-[34px]">Assignar</button>
-      </form>
+      <h2 className="text-xl font-bold mb-4">Gestió d'Usuaris i Rols</h2>
+      <p className="text-sm text-gray-500 mb-6">Tots els usuaris que iniciïn sessió apareixeran aquí automàticament. Pots assignar-los múltiples rols simultàniament.</p>
 
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="border-b">
-            <th className="p-2">UID</th>
-            <th className="p-2">Rol</th>
-            <th className="p-2">Accions</th>
+            <th className="p-2">Usuari</th>
+            <th className="p-2">Rols Actuals</th>
+            <th className="p-2">Afegeix Rol</th>
           </tr>
         </thead>
         <tbody>
           {users.map(u => (
             <tr key={u.id} className="border-b">
-              <td className="p-2 font-mono text-sm">{u.id}</td>
               <td className="p-2">
-                <span className="bg-gray-200 px-2 py-1 rounded text-xs">{u.role}</span>
+                <div className="font-bold">{u.name || 'Usuari Anònim'}</div>
+                <div className="text-sm text-gray-500">{u.email || u.id}</div>
               </td>
               <td className="p-2">
-                <button onClick={() => handleDelete(u.id)} className="text-red-600 text-sm">Eliminar Permís</button>
+                <div className="flex flex-wrap gap-1">
+                  {u.roles && u.roles.map((r: string) => (
+                    <span key={r} className="bg-blue-100 text-blue-800 border border-blue-200 px-2 py-1 rounded text-xs flex items-center gap-1 font-medium">
+                      {r}
+                      <button onClick={() => handleRemoveRole(u.id, r)} className="text-blue-500 hover:text-blue-800 font-bold ml-1" title="Eliminar rol">×</button>
+                    </span>
+                  ))}
+                  {(!u.roles || u.roles.length === 0) && <span className="text-gray-400 text-sm italic">Sense rols</span>}
+                </div>
+              </td>
+              <td className="p-2">
+                <div className="flex gap-2">
+                  <select id={`select-${u.id}`} className="border rounded p-1 text-sm bg-white">
+                    <option value="superadmin">Super-Admin</option>
+                    <option value="admin_futbol">Admin Futbol</option>
+                    <option value="admin_basquet">Admin Bàsquet</option>
+                    <option value="barista">Barista</option>
+                  </select>
+                  <button onClick={() => {
+                    const select = document.getElementById(`select-${u.id}`) as HTMLSelectElement;
+                    handleAddRole(u.id, select.value);
+                  }} className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition">Afegir</button>
+                </div>
               </td>
             </tr>
           ))}
