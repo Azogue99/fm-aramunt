@@ -1,37 +1,140 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { PanelHeader } from '../../components/layout/AdminLayout';
 import { Button } from '../../components/ui/Button';
 import { Input, Textarea } from '../../components/ui/Field';
 import { useFeedback } from '../../components/ui/Feedback';
 import { useSiteContent } from '../../hooks/useSiteContent';
-import { DEFAULT_CONTENT, resetContent, saveContent } from '../../services/content';
+import { resetContent, saveContent } from '../../services/content';
 import type { ProgramEntry, SiteContent } from '../../types';
+
+interface LocalEntry {
+  id: string;
+  time: string;
+  order?: number;
+  title: string;
+  detail: string;
+}
+
+interface LocalDay {
+  id: string;
+  day: string;
+  collapsed: boolean;
+  entries: LocalEntry[];
+}
+
+const generateId = () => Math.random().toString(36).slice(2, 9);
 
 export const ContentPanel: React.FC = () => {
   const { content, loading } = useSiteContent();
   const { toast, confirm } = useFeedback();
+  
   const [draft, setDraft] = useState<SiteContent>(content);
+  const [localDays, setLocalDays] = useState<LocalDay[]>([]);
   const [saving, setSaving] = useState(false);
 
-  // Només sincronitzem un cop carregat, per no trepitjar el que s'està editant.
   useEffect(() => {
-    if (!loading) setDraft(content);
+    if (!loading) {
+      setDraft(content);
+      
+      const groups: LocalDay[] = [];
+      for (const entry of (content.programa ?? [])) {
+        let group = groups.find((g) => g.day === entry.day);
+        if (!group) {
+          group = { id: generateId(), day: entry.day, collapsed: false, entries: [] };
+          groups.push(group);
+        }
+        group.entries.push({
+          id: generateId(),
+          time: entry.time,
+          order: entry.order,
+          title: entry.title,
+          detail: entry.detail ?? '',
+        });
+      }
+      setLocalDays(groups);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
-  const patch = (values: Partial<SiteContent>) => setDraft((prev) => ({ ...prev, ...values }));
+  const patchDraft = (values: Partial<SiteContent>) => setDraft((prev) => ({ ...prev, ...values }));
 
-  const patchEntry = (index: number, values: Partial<ProgramEntry>) =>
-    patch({
-      programa: (draft.programa ?? []).map((entry, i) => (i === index ? { ...entry, ...values } : entry)),
-    });
+  const addDay = () => {
+    setLocalDays((prev) => [
+      ...prev,
+      { id: generateId(), day: 'Nou Dia', collapsed: false, entries: [] },
+    ]);
+  };
+
+  const updateDay = (dayId: string, values: Partial<LocalDay>) => {
+    setLocalDays((prev) => prev.map((d) => (d.id === dayId ? { ...d, ...values } : d)));
+  };
+
+  const removeDay = (dayId: string) => {
+    setLocalDays((prev) => prev.filter((d) => d.id !== dayId));
+  };
+
+  const addEntry = (dayId: string) => {
+    setLocalDays((prev) =>
+      prev.map((d) => {
+        if (d.id !== dayId) return d;
+        // Calcular l'ordre basant-se en l'últim acte globalment, per comoditat
+        const maxOrder = prev.flatMap(d => d.entries).reduce((max, e) => Math.max(max, e.order ?? 0), 0);
+        return {
+          ...d,
+          collapsed: false,
+          entries: [
+            ...d.entries,
+            { id: generateId(), time: '', title: '', detail: '', order: maxOrder + 1 },
+          ],
+        };
+      })
+    );
+  };
+
+  const updateEntry = (dayId: string, entryId: string, values: Partial<LocalEntry>) => {
+    setLocalDays((prev) =>
+      prev.map((d) => {
+        if (d.id !== dayId) return d;
+        return {
+          ...d,
+          entries: d.entries.map((e) => (e.id === entryId ? { ...e, ...values } : e)),
+        };
+      })
+    );
+  };
+
+  const removeEntry = (dayId: string, entryId: string) => {
+    setLocalDays((prev) =>
+      prev.map((d) => {
+        if (d.id !== dayId) return d;
+        return { ...d, entries: d.entries.filter((e) => e.id !== entryId) };
+      })
+    );
+  };
+
+  const flattenDays = (): ProgramEntry[] => {
+    return localDays.flatMap((d) =>
+      d.entries.map((e) => ({
+        day: d.day,
+        time: e.time,
+        order: e.order,
+        title: e.title,
+        detail: e.detail || undefined,
+      }))
+    );
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
     try {
-      await saveContent({ info_text: draft.info_text, programa_intro: draft.programa_intro, programa: draft.programa });
+      const finalPrograma = flattenDays();
+      await saveContent({
+        info_text: draft.info_text,
+        programa_intro: draft.programa_intro,
+        programa: finalPrograma,
+      });
       toast('Contingut desat. Ja es veu a la web.');
     } catch (error) {
       console.error(error);
@@ -52,16 +155,14 @@ export const ContentPanel: React.FC = () => {
     setSaving(true);
     try {
       await resetContent();
-      setDraft(DEFAULT_CONTENT);
       toast('Contingut restablert als valors per defecte.');
+      // Refresh will happen via the listener (useSiteContent)
     } catch (error) {
       console.error(error);
       toast("No s'ha pogut restablir el contingut.", 'error');
     }
     setSaving(false);
   };
-
-  const entries = draft.programa ?? [];
 
   return (
     <form onSubmit={handleSubmit}>
@@ -87,7 +188,7 @@ export const ContentPanel: React.FC = () => {
             label="Text anual"
             rows={10}
             value={draft.info_text}
-            onChange={(event) => patch({ info_text: event.target.value })}
+            onChange={(event) => patchDraft({ info_text: event.target.value })}
             required
           />
         </section>
@@ -95,73 +196,120 @@ export const ContentPanel: React.FC = () => {
         <section className="flex flex-col gap-5">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-brand">Programa d&apos;actes</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                patch({ programa: [...entries, { day: '', time: '', title: '', detail: '', order: entries.length + 1 }] })
-              }
-            >
-              <Plus size={14} /> Afegir acte
+            <Button variant="ghost" size="sm" onClick={addDay}>
+              <Plus size={14} /> Afegir Dia
             </Button>
           </div>
 
           <Input
             label="Introducció del programa"
             value={draft.programa_intro ?? ''}
-            onChange={(event) => patch({ programa_intro: event.target.value })}
+            onChange={(event) => patchDraft({ programa_intro: event.target.value })}
           />
 
-          {entries.length === 0 && (
+          {localDays.length === 0 && (
             <p className="text-sm text-muted">
               Encara no hi ha cap acte. Mentre estigui buit, la web mostra només el cartell.
             </p>
           )}
 
-          {entries.map((entry, index) => (
-            <div key={index} className="flex flex-col gap-3 border border-hairline bg-white p-4">
-              <div className="grid gap-3 sm:grid-cols-[1fr_7rem_5rem_auto] sm:items-end">
-                <Input
-                  label="Dia"
-                  placeholder="Divendres 7 d'agost"
-                  value={entry.day}
-                  onChange={(event) => patchEntry(index, { day: event.target.value })}
-                />
-                <Input
-                  label="Hora"
-                  placeholder="23:00"
-                  value={entry.time}
-                  onChange={(event) => patchEntry(index, { time: event.target.value })}
-                />
-                <Input
-                  label="Ordre"
-                  type="number"
-                  min="0"
-                  placeholder={String(index + 1)}
-                  value={entry.order ?? ''}
-                  onChange={(event) => patchEntry(index, { order: event.target.value === '' ? undefined : Number.parseInt(event.target.value, 10) })}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label="Esborrar acte"
-                  onClick={() => patch({ programa: entries.filter((_, i) => i !== index) })}
-                >
-                  <Trash2 size={14} />
-                </Button>
+          {localDays.map((dayGroup) => (
+            <div key={dayGroup.id} className="flex flex-col border border-hairline bg-white shadow-sm transition-all">
+              {/* Day Header */}
+              <div className="flex items-center justify-between border-b border-hairline bg-ink/5 p-3 sm:px-4">
+                <div className="flex flex-grow items-center gap-2 sm:gap-4">
+                  <button
+                    type="button"
+                    onClick={() => updateDay(dayGroup.id, { collapsed: !dayGroup.collapsed })}
+                    className="flex h-8 w-8 items-center justify-center rounded text-muted hover:bg-ink/10 hover:text-ink"
+                    aria-label={dayGroup.collapsed ? 'Desplegar dia' : 'Col·lapsar dia'}
+                  >
+                    {dayGroup.collapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+                  </button>
+                  <input
+                    type="text"
+                    value={dayGroup.day}
+                    onChange={(e) => updateDay(dayGroup.id, { day: e.target.value })}
+                    className="flex-grow bg-transparent px-2 py-1 font-bold text-ink outline-none hover:bg-ink/5 focus:bg-white focus:ring-2 focus:ring-brand"
+                    placeholder="Nom del dia (ex: Divendres 7)"
+                    required
+                  />
+                </div>
+                <div className="ml-4 flex shrink-0 gap-1 sm:gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => addEntry(dayGroup.id)}>
+                    <Plus size={14} /> <span className="hidden sm:inline">Afegir acte</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Esborrar dia"
+                    onClick={() => {
+                      if (dayGroup.entries.length === 0 || window.confirm('Segur que vols esborrar aquest dia i tots els seus actes?')) {
+                        removeDay(dayGroup.id);
+                      }
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
               </div>
-              <Input
-                label="Acte"
-                placeholder="Orquestra Mediterrània"
-                value={entry.title}
-                onChange={(event) => patchEntry(index, { title: event.target.value })}
-              />
-              <Input
-                label="Detall (opcional)"
-                placeholder="A la plaça. Entrada lliure."
-                value={entry.detail ?? ''}
-                onChange={(event) => patchEntry(index, { detail: event.target.value })}
-              />
+
+              {/* Events */}
+              {!dayGroup.collapsed && (
+                <div className="flex flex-col gap-4 p-4 sm:p-5">
+                  {dayGroup.entries.length === 0 && (
+                    <p className="text-sm italic text-muted">Aquest dia no té cap acte.</p>
+                  )}
+                  {dayGroup.entries.map((entry) => (
+                    <div key={entry.id} className="relative flex flex-col gap-3 rounded border border-hairline p-4 pl-4 sm:pl-5">
+                      <div className="absolute bottom-0 left-0 top-0 w-1 rounded-l bg-brand/20"></div>
+                      <div className="grid gap-3 sm:grid-cols-[7rem_5rem_auto] sm:items-end">
+                        <Input
+                          label="Hora"
+                          placeholder="23:00"
+                          value={entry.time}
+                          onChange={(e) => updateEntry(dayGroup.id, entry.id, { time: e.target.value })}
+                          required
+                        />
+                        <Input
+                          label="Ordre"
+                          type="number"
+                          min="0"
+                          value={entry.order ?? ''}
+                          onChange={(e) =>
+                            updateEntry(dayGroup.id, entry.id, {
+                              order: e.target.value === '' ? undefined : Number.parseInt(e.target.value, 10),
+                            })
+                          }
+                        />
+                        <div className="flex justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label="Esborrar acte"
+                            onClick={() => removeEntry(dayGroup.id, entry.id)}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                      <Input
+                        label="Acte"
+                        placeholder="Orquestra Mediterrània"
+                        value={entry.title}
+                        onChange={(e) => updateEntry(dayGroup.id, entry.id, { title: e.target.value })}
+                        required
+                      />
+                      <Input
+                        label="Detall (opcional)"
+                        placeholder="A la plaça. Entrada lliure."
+                        value={entry.detail}
+                        onChange={(e) => updateEntry(dayGroup.id, entry.id, { detail: e.target.value })}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </section>
