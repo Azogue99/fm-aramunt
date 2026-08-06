@@ -31,7 +31,7 @@ const STATUS: Record<TeamStatus, { label: string; tone: BadgeTone }> = {
 };
 
 export const MyTeamsPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { data: tournaments } = useTournaments();
   const { data: teams, loading } = useCollection<Team>(user ? myTeamsQuery(user.uid) : null, [user?.uid]);
   const [creating, setCreating] = useState(false);
@@ -45,11 +45,16 @@ export const MyTeamsPage: React.FC = () => {
         title="El meu equip"
         lead="Aquí gestiones els equips on jugues: qui hi és, com convidar gent i quan jugueu."
         actions={
-          openTournaments.length > 0 ? (
-            <Button onClick={() => setCreating(true)}>
-              <Plus size={16} /> Crear equip
+          <>
+            {openTournaments.length > 0 && (
+              <Button onClick={() => setCreating(true)}>
+                <Plus size={16} /> Crear equip
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => void signOut()}>
+              <LogOut size={16} /> Tancar sessió
             </Button>
-          ) : undefined
+          </>
         }
       />
 
