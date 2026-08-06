@@ -45,6 +45,8 @@ Perquè aparegui un torneig, crea un document a `tournaments` amb un id qualsevo
   "registrationOpen": true,
   "minPlayers": 5,
   "maxPlayers": 8,
+  "format": "groups_knockout",
+  "scoring": { "win": 3, "draw": 1, "loss": 0 },
   "phase": "inscripcions",
   "groups": [],
   "knockoutSize": 4,
@@ -52,6 +54,8 @@ Perquè aparegui un torneig, crea un document a `tournaments` amb un id qualsevo
   "order": 1
 }
 ```
+
+No cal crear els documents a mà per a edicions noves: un superadministrador ho pot fer des de **Panell → Tornejos**. Allà pot assignar el responsable, escollir entre grups + eliminatòries o eliminatòria directa, i cada responsable pot ajustar la mida d'equip, els classificats, la mida del quadre i la puntuació. Per exemple, el bàsquet habitual fa servir `3/1/0` (victòria/empat/derrota), però no queda fixat al codi.
 
 El primer superadministrador s'ha d'assignar manualment al document `users/{uid}` amb `roles: ["superadmin"]`. Després, des del panell d'usuaris, pots gestionar rols i reservar-los per a persones que encara no han iniciat sessió.
 

@@ -1,4 +1,4 @@
-import { doc, setDoc } from 'firebase/firestore';
+import { deleteDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { SiteContent } from '../types';
 
@@ -20,6 +20,12 @@ VISCA ARAMUNT I VISCA LA FESTA MAJOR!
   programa: [],
 };
 
-export function saveContent(content: SiteContent) {
-  return setDoc(doc(db, WEB_CONTENT, LANDING_DOC), content);
+/** El programa i el pregó canvien cada edició; la capçalera de la landing no. */
+export function saveContent(content: Pick<SiteContent, 'info_text' | 'programa_intro' | 'programa'>) {
+  return setDoc(doc(db, WEB_CONTENT, LANDING_DOC), content, { merge: true });
+}
+
+/** En esborrar el document, `useSiteContent` torna automàticament als textos del codi. */
+export function resetContent() {
+  return deleteDoc(doc(db, WEB_CONTENT, LANDING_DOC));
 }

@@ -20,6 +20,7 @@ import { ContentPanel } from './features/admin/ContentPanel';
 import { UsersPanel } from './features/admin/UsersPanel';
 import { BarPanel } from './features/admin/BarPanel';
 import { TournamentPanel } from './features/admin/tournament/TournamentPanel';
+import { TournamentsPanel } from './features/admin/tournament/TournamentsPanel';
 import { BarPOS } from './features/bar/BarPOS';
 
 /** `/panell` sol: porta al primer panell que aquest usuari pot veure. */
@@ -108,6 +109,14 @@ export const AppRoutes: React.FC = () => (
         }
       />
       <Route
+        path="tornejos"
+        element={
+          <RequireRole allowed={['superadmin', 'admin_futbol', 'admin_basquet']}>
+            <TournamentsPanel />
+          </RequireRole>
+        }
+      />
+      <Route
         path="tornejos/:slug"
         element={
           <RequireTournamentRole>
@@ -120,7 +129,7 @@ export const AppRoutes: React.FC = () => (
     {/* Rutes de la versió anterior, per no trencar enllaços compartits */}
     <Route path="/admin" element={<Navigate to="/panell" replace />} />
     <Route path="/bar" element={<Navigate to="/panell/barra" replace />} />
-    <Route path="/futbol" element={<Navigate to="/panell/tornejos/futbol" replace />} />
-    <Route path="/basquet" element={<Navigate to="/panell/tornejos/basquet" replace />} />
+    <Route path="/futbol" element={<Navigate to="/panell/tornejos" replace />} />
+    <Route path="/basquet" element={<Navigate to="/panell/tornejos" replace />} />
   </Routes>
 );

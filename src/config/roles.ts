@@ -20,12 +20,6 @@ export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   barista: 'Accés al TPV de la barra.',
 };
 
-/** Quin rol administra quin torneig, per slug. */
-export const TOURNAMENT_MANAGER_ROLE: Record<string, UserRole> = {
-  futbol: 'admin_futbol',
-  basquet: 'admin_basquet',
-};
-
 export interface PanelDefinition {
   /** Camí relatiu dins de /panell. */
   path: string;
@@ -40,8 +34,7 @@ export interface PanelDefinition {
  * `resolveHomePanel` hi busca la primera destinació vàlida després del login.
  */
 export const PANELS: PanelDefinition[] = [
-  { path: 'tornejos/futbol', label: 'Futbol 5v5', roles: ['superadmin', 'admin_futbol'], icon: 'trophy' },
-  { path: 'tornejos/basquet', label: 'Bàsquet 3x3', roles: ['superadmin', 'admin_basquet'], icon: 'trophy' },
+  { path: 'tornejos', label: 'Tornejos', roles: ['superadmin', 'admin_futbol', 'admin_basquet'], icon: 'trophy' },
   { path: 'barra', label: 'Barra', roles: ['superadmin', 'barista'], icon: 'cup' },
   { path: 'web', label: 'Contingut web', roles: ['superadmin'], icon: 'text' },
   { path: 'usuaris', label: 'Usuaris i rols', roles: ['superadmin'], icon: 'users' },
@@ -61,7 +54,6 @@ export function resolveHomePanel(roles: UserRole[]): string | null {
   return first ? `/panell/${first.path}` : null;
 }
 
-export function canManageTournament(roles: UserRole[], slug: string): boolean {
-  const managerRole = TOURNAMENT_MANAGER_ROLE[slug];
+export function canManageTournament(roles: UserRole[], managerRole: UserRole | undefined): boolean {
   return roles.includes('superadmin') || (managerRole ? roles.includes(managerRole) : false);
 }

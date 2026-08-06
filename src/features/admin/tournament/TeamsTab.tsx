@@ -4,9 +4,12 @@ import { Badge, type BadgeTone } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Input } from '../../../components/ui/Field';
+import { Modal } from '../../../components/ui/Modal';
 import { useFeedback } from '../../../components/ui/Feedback';
+import { useAuth } from '../../../context/AuthContext';
 import {
   addGuestMember,
+  createTeamAsAdmin,
   deleteTeam,
   removeMemberAt,
   renameTeam,
@@ -33,27 +36,67 @@ interface TeamsTabProps {
 }
 
 export const TeamsTab: React.FC<TeamsTabProps> = ({ tournament, teams }) => {
+  const [creating, setCreating] = useState(false);
   const sorted = [...teams].sort(
     (a, b) =>
       Number(b.status === 'pending') - Number(a.status === 'pending') ||
       a.name.localeCompare(b.name, 'ca'),
   );
 
-  if (teams.length === 0) {
-    return (
-      <EmptyState
-        title="Cap equip inscrit encara"
-        description="Quan algú creï un equip des del panell de participant, apareixerà aquí per validar."
-      />
-    );
-  }
+  return (
+    <>
+      <div className="mb-6 flex justify-end">
+        <Button onClick={() => setCreating(true)}><UserPlus size={16} /> Afegir equip</Button>
+      </div>
+      {teams.length === 0 ? (
+        <EmptyState
+          title="Cap equip inscrit encara"
+          description="Pots afegir-ne un manualment o esperar que els participants en creïn des de “El meu equip”."
+        />
+      ) : (
+        <ul className="flex flex-col gap-4">
+          {sorted.map((team) => (
+            <TeamCard key={team.id} team={team} tournament={tournament} />
+          ))}
+        </ul>
+      )}
+      <CreateTeamModal open={creating} onClose={() => setCreating(false)} tournament={tournament} />
+    </>
+  );
+};
+
+const CreateTeamModal: React.FC<{ open: boolean; onClose: () => void; tournament: Tournament }> = ({ open, onClose, tournament }) => {
+  const { user } = useAuth();
+  const { toast } = useFeedback();
+  const [name, setName] = useState('');
+  const [firstMember, setFirstMember] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!user || !name.trim()) return;
+    setSaving(true);
+    try {
+      await createTeamAsAdmin({ tournamentId: tournament.id, name, adminUid: user.uid, firstMemberName: firstMember });
+      toast('Equip afegit i aprovat. Pots completar-ne els membres ara mateix.');
+      setName('');
+      setFirstMember('');
+      onClose();
+    } catch (error) {
+      console.error(error);
+      toast("No s'ha pogut afegir l'equip.", 'error');
+    }
+    setSaving(false);
+  };
 
   return (
-    <ul className="flex flex-col gap-4">
-      {sorted.map((team) => (
-        <TeamCard key={team.id} team={team} tournament={tournament} />
-      ))}
-    </ul>
+    <Modal open={open} title={`Afegir equip a ${tournament.name}`} onClose={onClose}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <Input label="Nom de l'equip" value={name} onChange={(event) => setName(event.target.value)} maxLength={60} required />
+        <Input label="Primer participant (opcional)" value={firstMember} onChange={(event) => setFirstMember(event.target.value)} maxLength={60} hint="Es desa com a participant sense compte; després en pots afegir més." />
+        <Button type="submit" size="lg" disabled={saving || !name.trim()}>{saving ? 'Afegint…' : 'Afegir equip'}</Button>
+      </form>
+    </Modal>
   );
 };
 

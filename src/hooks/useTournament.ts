@@ -3,7 +3,7 @@ import { useCollection } from './useCollection';
 import { matchesByTournamentQuery } from '../services/matches';
 import { teamsByTournamentQuery } from '../services/teams';
 import { tournamentsQuery } from '../services/tournaments';
-import type { Match, Standing, Team, Tournament } from '../types';
+import type { Match, Standing, Team, Tournament, TournamentScoring } from '../types';
 
 export function useTournaments() {
   return useCollection<Tournament>(tournamentsQuery(), []);
@@ -28,9 +28,9 @@ export function useTeamNames(teams: Team[]): Map<string, string> {
   return useMemo(() => new Map(teams.map((team) => [team.id, team.name])), [teams]);
 }
 
-/** Punts per victòria i empat segons l'esport. */
-export function pointsFor(sport: Tournament['sport']): { win: number; draw: number } {
-  return sport === 'basquet' ? { win: 2, draw: 1 } : { win: 3, draw: 1 };
+/** Compatibilitat amb tornejos creats abans que la puntuació fos configurable. */
+export function scoringFor(tournament: Tournament): TournamentScoring {
+  return tournament.scoring ?? { win: 3, draw: 1, loss: 0 };
 }
 
 /**
@@ -42,9 +42,9 @@ export function computeStandings(
   teamIds: string[],
   teams: Team[],
   matches: Match[],
-  sport: Tournament['sport'],
+  tournament: Tournament,
 ): Standing[] {
-  const scoring = pointsFor(sport);
+  const scoring = scoringFor(tournament);
   const names = new Map(teams.map((team) => [team.id, team.name]));
 
   const rows = new Map<string, Standing>(
@@ -82,10 +82,12 @@ export function computeStandings(
       home.won += 1;
       home.points += scoring.win;
       away.lost += 1;
+      away.points += scoring.loss;
     } else if (match.awayScore > match.homeScore) {
       away.won += 1;
       away.points += scoring.win;
       home.lost += 1;
+      home.points += scoring.loss;
     } else {
       home.drawn += 1;
       away.drawn += 1;
@@ -115,7 +117,7 @@ export function useGroupStandings(tournament: Tournament | null, teams: Team[], 
         group.teamIds,
         teams,
         matches.filter((match) => match.phase === 'group' && match.groupId === group.id),
-        tournament.sport,
+        tournament,
       ),
     }));
   }, [tournament, teams, matches]);

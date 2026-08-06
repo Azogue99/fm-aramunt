@@ -1,6 +1,6 @@
-import { collection, doc, orderBy, query, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, orderBy, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { Tournament, TournamentGroup, TournamentPhase } from '../types';
+import type { Sport, Tournament, TournamentFormat, TournamentGroup, TournamentPhase, TournamentScoring, UserRole } from '../types';
 
 export const TOURNAMENTS = 'tournaments';
 
@@ -8,6 +8,37 @@ export const tournamentsQuery = () => query(collection(db, TOURNAMENTS), orderBy
 
 export const tournamentBySlugQuery = (slug: string) =>
   query(collection(db, TOURNAMENTS), where('slug', '==', slug));
+
+export interface CreateTournamentInput {
+  name: string;
+  slug: string;
+  sport: Sport;
+  year: number;
+  managerRole: UserRole;
+  minPlayers: number;
+  maxPlayers: number;
+  format: TournamentFormat;
+  scoring: TournamentScoring;
+}
+
+/** El slug també és l'id del document: així no es poden duplicar tornejos del mateix any. */
+export async function createTournament(input: CreateTournamentInput) {
+  const slug = input.slug.trim().toLowerCase();
+  const ref = doc(db, TOURNAMENTS, slug);
+  if ((await getDoc(ref)).exists()) throw new Error('Ja existeix un torneig amb aquest identificador.');
+
+  return setDoc(ref, {
+    ...input,
+    slug,
+    name: input.name.trim(),
+    registrationOpen: true,
+    phase: 'inscripcions' satisfies TournamentPhase,
+    groups: [],
+    knockoutSize: 4,
+    qualifiersPerGroup: 2,
+    order: input.year * 10 + (input.sport === 'futbol' ? 1 : 2),
+  });
+}
 
 export function updateTournament(id: string, patch: Partial<Tournament>) {
   return updateDoc(doc(db, TOURNAMENTS, id), patch);

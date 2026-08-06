@@ -28,6 +28,14 @@ export interface RoleInvite extends WithId {
 export type Sport = 'futbol' | 'basquet';
 
 export type TournamentPhase = 'inscripcions' | 'grups' | 'eliminatories' | 'finalitzat';
+export type TournamentFormat = 'groups_knockout' | 'knockout';
+
+/** Punts de classificació; es defineixen per torneig, no per esport. */
+export interface TournamentScoring {
+  win: number;
+  draw: number;
+  loss: number;
+}
 
 export interface TournamentGroup {
   id: string;
@@ -45,6 +53,10 @@ export interface Tournament extends WithId {
   registrationOpen: boolean;
   minPlayers: number;
   maxPlayers: number;
+  /** Si hi ha lligueta abans del quadre, o bé eliminatòria directa. */
+  format?: TournamentFormat;
+  /** Documents antics sense aquest camp usen 3/1/0. */
+  scoring?: TournamentScoring;
   phase: TournamentPhase;
   groups: TournamentGroup[];
   /** Nombre d'equips que entren a l'eliminatòria. */

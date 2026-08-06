@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/layout/PublicLayout';
 import { Badge } from '../../components/ui/Badge';
@@ -34,6 +34,10 @@ export const TorneigPage: React.FC = () => {
   const { data: allTeams } = useTeams(tournament?.id);
   const { data: matches } = useMatches(tournament?.id);
 
+  useEffect(() => {
+    if (tournament?.format === 'knockout' && tab === 'classificacio') setTab('partits');
+  }, [tab, tournament?.format]);
+
   // A la web pública només hi surten els equips aprovats.
   const teams = useMemo(() => allTeams.filter((team) => team.status === 'approved'), [allTeams]);
   const groupStandings = useGroupStandings(tournament, teams, matches);
@@ -63,6 +67,7 @@ export const TorneigPage: React.FC = () => {
   const groupMatches = matches.filter((match) => match.phase === 'group').sort(bySchedule);
   const knockoutMatches = matches.filter((match) => match.phase === 'knockout');
   const scheduled = [...matches].sort(bySchedule);
+  const tabs = tournament.format === 'knockout' ? TABS.filter((item) => item.id !== 'classificacio') : TABS;
 
   return (
     <>
@@ -77,7 +82,7 @@ export const TorneigPage: React.FC = () => {
       />
 
       <div className="mb-8 flex gap-6 border-b border-hairline" role="tablist">
-        {TABS.map((item) => (
+        {tabs.map((item) => (
           <button
             key={item.id}
             type="button"

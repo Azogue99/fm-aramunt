@@ -51,6 +51,31 @@ export async function createTeam(input: CreateTeamInput): Promise<string> {
   return ref.id;
 }
 
+/** Alta manual feta per la comissió: pot començar sense cap usuari registrat. */
+export async function createTeamAsAdmin(input: {
+  tournamentId: string;
+  name: string;
+  adminUid: string;
+  firstMemberName?: string;
+}): Promise<string> {
+  const firstMember = input.firstMemberName?.trim();
+  const ref = await addDoc(collection(db, TEAMS), {
+    tournamentId: input.tournamentId,
+    name: input.name.trim(),
+    status: 'approved' satisfies TeamStatus,
+    // El responsable pot gestionar aquest equip des del panell encara que cap
+    // participant tingui compte. Les regles també li donen accés per torneig.
+    captainUid: input.adminUid,
+    memberUids: [],
+    members: firstMember ? [{ name: firstMember, uid: null } satisfies TeamMember] : [],
+    inviteCode: generateInviteCode(),
+    inviteEnabled: true,
+    createdAt: serverTimestamp(),
+    createdBy: input.adminUid,
+  });
+  return ref.id;
+}
+
 export async function findTeamByInviteCode(code: string): Promise<Team | null> {
   const snapshot = await getDocs(
     query(collection(db, TEAMS), where('inviteCode', '==', normalizeInviteCode(code)), limit(1)),

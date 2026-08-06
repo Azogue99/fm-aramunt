@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { PanelHeader } from '../../components/layout/AdminLayout';
 import { Button } from '../../components/ui/Button';
 import { Input, Textarea } from '../../components/ui/Field';
 import { useFeedback } from '../../components/ui/Feedback';
 import { useSiteContent } from '../../hooks/useSiteContent';
-import { saveContent } from '../../services/content';
+import { DEFAULT_CONTENT, resetContent, saveContent } from '../../services/content';
 import type { ProgramEntry, SiteContent } from '../../types';
 
 export const ContentPanel: React.FC = () => {
   const { content, loading } = useSiteContent();
-  const { toast } = useFeedback();
+  const { toast, confirm } = useFeedback();
   const [draft, setDraft] = useState<SiteContent>(content);
   const [saving, setSaving] = useState(false);
 
@@ -31,11 +31,32 @@ export const ContentPanel: React.FC = () => {
     event.preventDefault();
     setSaving(true);
     try {
-      await saveContent(draft);
+      await saveContent({ info_text: draft.info_text, programa_intro: draft.programa_intro, programa: draft.programa });
       toast('Contingut desat. Ja es veu a la web.');
     } catch (error) {
       console.error(error);
       toast("No s'ha pogut desar.", 'error');
+    }
+    setSaving(false);
+  };
+
+  const handleReset = async () => {
+    const ok = await confirm({
+      title: 'Restablir el contingut',
+      message: 'S’esborraran els textos desats i la web tornarà a mostrar els valors per defecte.',
+      confirmLabel: 'Restablir',
+      destructive: true,
+    });
+    if (!ok) return;
+
+    setSaving(true);
+    try {
+      await resetContent();
+      setDraft(DEFAULT_CONTENT);
+      toast('Contingut restablert als valors per defecte.');
+    } catch (error) {
+      console.error(error);
+      toast("No s'ha pogut restablir el contingut.", 'error');
     }
     setSaving(false);
   };
@@ -46,36 +67,24 @@ export const ContentPanel: React.FC = () => {
     <form onSubmit={handleSubmit}>
       <PanelHeader
         title="Contingut de la web"
-        description="Tot això surt directament a la portada, al programa i a la pàgina de la comissió."
+        description="Edita el pregó i el programa anuals. Els textos estructurals de la portada són fixes al codi."
         actions={
-          <Button type="submit" disabled={saving}>
-            {saving ? 'Desant…' : 'Desar canvis'}
-          </Button>
+          <>
+            <Button type="button" variant="ghost" onClick={handleReset} disabled={saving}>
+              <RotateCcw size={16} /> Restablir valors
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Desant…' : 'Desar canvis'}
+            </Button>
+          </>
         }
       />
 
       <div className="flex max-w-2xl flex-col gap-8">
         <section className="flex flex-col gap-5">
-          <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-brand">Portada</h2>
-          <Input
-            label="Títol principal"
-            value={draft.hero_title}
-            onChange={(event) => patch({ hero_title: event.target.value })}
-            required
-          />
-          <Input
-            label="Subtítol"
-            hint="Aquí hi van les dates."
-            value={draft.hero_subtitle}
-            onChange={(event) => patch({ hero_subtitle: event.target.value })}
-            required
-          />
-        </section>
-
-        <section className="flex flex-col gap-5 border-t border-hairline pt-8">
-          <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-brand">La Comi</h2>
+          <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-brand">Pregó / text de la Comi</h2>
           <Textarea
-            label="Qui som"
+            label="Text anual"
             rows={10}
             value={draft.info_text}
             onChange={(event) => patch({ info_text: event.target.value })}
@@ -83,7 +92,7 @@ export const ContentPanel: React.FC = () => {
           />
         </section>
 
-        <section className="flex flex-col gap-5 border-t border-hairline pt-8">
+        <section className="flex flex-col gap-5">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-brand">Programa d&apos;actes</h2>
             <Button

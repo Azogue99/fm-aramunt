@@ -32,6 +32,15 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({ tournament, teams, matches
 
   const scoreLabel = tournament.sport === 'basquet' ? 'Punts' : 'Gols';
 
+  if (tournament.format === 'knockout') {
+    return (
+      <EmptyState
+        title="Aquest torneig és d'eliminatòria directa"
+        description="Canvia el format a Configuració si vols crear grups i una lligueta prèvia."
+      />
+    );
+  }
+
   const handleAutoDistribute = async () => {
     if (approved.length === 0) return;
     const ok = await confirm({
@@ -177,7 +186,7 @@ export const GroupsTab: React.FC<GroupsTabProps> = ({ tournament, teams, matches
                   group.teamIds,
                   approved,
                   matches.filter((match) => match.phase === 'group' && match.groupId === group.id),
-                  tournament.sport,
+                  tournament,
                 )}
                 qualifiers={tournament.qualifiersPerGroup}
                 scoreLabel={scoreLabel}

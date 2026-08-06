@@ -11,6 +11,7 @@ import {
   type Seed,
   buildKnockoutPlan,
   deleteMatchesWhere,
+  advanceByes,
   roundForSize,
   writePlan,
 } from '../../../services/matches';
@@ -39,6 +40,7 @@ export const BracketTab: React.FC<BracketTabProps> = ({
 
   const groupStandings = useGroupStandings(tournament, teams, matches);
   const knockoutMatches = matches.filter((match) => match.phase === 'knockout');
+  const isDirect = tournament.format === 'knockout';
 
   /**
    * Caps de sèrie intercalant grups: 1r A, 1r B, 2n A, 2n B… Així el 1r i el 2n
@@ -46,6 +48,10 @@ export const BracketTab: React.FC<BracketTabProps> = ({
    * fins a la final.
    */
   const seeds: Seed[] = useMemo(() => {
+    if (isDirect) {
+      return [...teams.slice(0, size), ...Array.from({ length: Math.max(0, size - teams.length) }, () => null)]
+        .map((team) => ({ teamId: team?.id ?? null, source: null }));
+    }
     const perGroup = Math.max(tournament.qualifiersPerGroup, 1);
     const result: Seed[] = [];
 
@@ -59,9 +65,9 @@ export const BracketTab: React.FC<BracketTabProps> = ({
     }
 
     return result.slice(0, size);
-  }, [groupStandings, tournament.qualifiersPerGroup, size]);
+  }, [groupStandings, isDirect, size, teams, tournament.qualifiersPerGroup]);
 
-  const enoughSeeds = seeds.length === size && roundForSize(size) !== null;
+  const enoughSeeds = seeds.length === size && roundForSize(size) !== null && (isDirect ? teams.length >= 2 && teams.length <= size : true);
 
   const handleGenerate = async () => {
     if (!user || !enoughSeeds) return;
@@ -83,6 +89,7 @@ export const BracketTab: React.FC<BracketTabProps> = ({
         await deleteMatchesWhere(tournament.id, (match) => match.phase === 'knockout');
       }
       await writePlan(buildKnockoutPlan(tournament.id, seeds), user.uid);
+      if (isDirect) await advanceByes(tournament.id, user.uid);
       if (tournament.knockoutSize !== size) {
         await updateTournament(tournament.id, { knockoutSize: size });
       }
@@ -94,7 +101,7 @@ export const BracketTab: React.FC<BracketTabProps> = ({
     setBusy(false);
   };
 
-  if (tournament.groups.length === 0) {
+  if (!isDirect && tournament.groups.length === 0) {
     return (
       <EmptyState
         title="Primer calen els grups"
@@ -125,8 +132,9 @@ export const BracketTab: React.FC<BracketTabProps> = ({
             </select>
           </div>
           <p className="pb-3 text-sm text-muted">
-            {tournament.qualifiersPerGroup} per grup × {tournament.groups.length} grups ={' '}
-            {tournament.qualifiersPerGroup * tournament.groups.length} classificats
+            {isDirect
+              ? `${teams.length} equips aprovats`
+              : `${tournament.qualifiersPerGroup} per grup × ${tournament.groups.length} grups = ${tournament.qualifiersPerGroup * tournament.groups.length} classificats`}
           </p>
         </div>
 
@@ -137,9 +145,9 @@ export const BracketTab: React.FC<BracketTabProps> = ({
 
       {!enoughSeeds && (
         <p className="border-l-2 border-brand bg-white px-4 py-3 text-sm text-muted">
-          Amb {tournament.groups.length} grups i {tournament.qualifiersPerGroup} classificats per grup surten{' '}
-          {tournament.qualifiersPerGroup * tournament.groups.length} equips, i has demanat un quadre de {size}.
-          Ajusta el nombre de grups, els classificats per grup o la mida del quadre.
+          {isDirect
+            ? `Hi ha ${teams.length} equips aprovats i has demanat un quadre de ${size}. Tria un quadre amb prou places; les places sobrants passen automàticament per bye.`
+            : `Amb ${tournament.groups.length} grups i ${tournament.qualifiersPerGroup} classificats per grup surten ${tournament.qualifiersPerGroup * tournament.groups.length} equips, i has demanat un quadre de ${size}. Ajusta el nombre de grups, els classificats per grup o la mida del quadre.`}
         </p>
       )}
 

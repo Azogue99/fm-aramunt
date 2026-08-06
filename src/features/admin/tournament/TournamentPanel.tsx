@@ -12,12 +12,14 @@ import { TeamsTab } from './TeamsTab';
 import { GroupsTab } from './GroupsTab';
 import { MatchesTab } from './MatchesTab';
 import { BracketTab } from './BracketTab';
+import { SettingsTab } from './SettingsTab';
 import type { TournamentPhase } from '../../../types';
 
-type Tab = 'equips' | 'grups' | 'partits' | 'quadre';
+type Tab = 'equips' | 'configuracio' | 'grups' | 'partits' | 'quadre';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'equips', label: 'Equips' },
+  { id: 'configuracio', label: 'Configuració' },
   { id: 'grups', label: 'Grups' },
   { id: 'partits', label: 'Partits' },
   { id: 'quadre', label: 'Quadre' },
@@ -107,7 +109,7 @@ export const TournamentPanel: React.FC = () => {
       </div>
 
       <div className="mb-8 flex gap-6 border-b border-hairline" role="tablist">
-        {TABS.map((item) => (
+        {(tournament.format === 'knockout' ? TABS.filter((item) => item.id !== 'grups') : TABS).map((item) => (
           <button
             key={item.id}
             type="button"
@@ -125,6 +127,7 @@ export const TournamentPanel: React.FC = () => {
       </div>
 
       {tab === 'equips' && <TeamsTab tournament={tournament} teams={teams} />}
+      {tab === 'configuracio' && <SettingsTab tournament={tournament} />}
       {tab === 'grups' && <GroupsTab tournament={tournament} teams={teams} matches={matches} />}
       {tab === 'partits' && (
         <MatchesTab tournament={tournament} teams={approved} matches={matches} teamName={teamName} groupName={groupName} />

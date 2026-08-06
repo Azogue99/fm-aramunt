@@ -226,7 +226,7 @@ export function buildGroupFixtures(tournamentId: string, groupId: string, teamId
 export interface Seed {
   /** null si encara no se sap qui serà (el quadre es genera abans d'acabar els grups). */
   teamId: string | null;
-  source: MatchSource;
+  source: MatchSource | null;
 }
 
 interface PlannedMatch {
@@ -311,6 +311,32 @@ export async function writePlan(plan: PlannedMatch[], uid: string) {
     batch.set(doc(db, MATCHES, id), draftToDoc(draft, uid));
   }
   await batch.commit();
+}
+
+/** Resol automàticament els "byes" d'una eliminatòria directa. */
+export async function advanceByes(tournamentId: string, uid: string) {
+  // Cada passada pot omplir la ronda següent; amb 16 equips en calen com a màxim quatre.
+  for (let pass = 0; pass < 8; pass++) {
+    const snapshot = await getDocs(
+      query(
+        collection(db, MATCHES),
+        where('tournamentId', '==', tournamentId),
+        where('phase', '==', 'knockout'),
+      ),
+    );
+    const byes = snapshot.docs
+      .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Match))
+      .filter(
+        (match) =>
+          match.status === 'scheduled' &&
+          Boolean(match.homeTeamId) !== Boolean(match.awayTeamId),
+      );
+
+    if (byes.length === 0) return;
+    for (const match of byes) {
+      await saveResult(match, match.homeTeamId ? 1 : 0, match.awayTeamId ? 1 : 0, uid);
+    }
+  }
 }
 
 export async function writeDrafts(drafts: MatchDraft[], uid: string) {

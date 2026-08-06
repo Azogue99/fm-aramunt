@@ -86,7 +86,13 @@ service cloud.firestore {
     match /tournaments/{tournamentId} {
       allow read: if true;
       allow create, delete: if isSuperAdmin();
-      allow update: if managesTournament(tournamentId);
+      // El responsable pot configurar el seu torneig, però no pot transferir
+      // la responsabilitat, canviar-ne l'slug ni fer-lo passar per un altre esport.
+      allow update: if isSuperAdmin()
+        || (managesTournament(tournamentId)
+            && unchanged('managerRole')
+            && unchanged('slug')
+            && unchanged('sport'));
     }
 
     // ------------------------------------------------------------------ Equips
@@ -97,7 +103,8 @@ service cloud.firestore {
       // Qui crea l'equip n'és el capità i l'únic membre. El `status` neix
       // sempre a 'pending': ningú es pot autoaprovar. Abans no es validava cap
       // camp i qualsevol usuari podia crear-se un equip aprovat amb punts.
-      allow create: if signedIn()
+      allow create: if managesTournament(request.resource.data.tournamentId)
+        || (signedIn()
         && request.resource.data.captainUid == request.auth.uid
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.status == 'pending'
@@ -107,7 +114,8 @@ service cloud.firestore {
         && request.resource.data.name.size() <= 60
         && request.resource.data.members is list
         && request.resource.data.inviteCode is string
-        && exists(/databases/$(database)/documents/tournaments/$(request.resource.data.tournamentId));
+        && exists(/databases/$(database)/documents/tournaments/$(request.resource.data.tournamentId))
+        && get(/databases/$(database)/documents/tournaments/$(request.resource.data.tournamentId)).data.registrationOpen == true);
 
       // 1) L'administrador del torneig pot fer qualsevol canvi.
       // 2) El capità gestiona el seu equip, però no l'estat ni de qui és.
@@ -136,7 +144,8 @@ service cloud.firestore {
           && request.resource.data.memberUids == resource.data.memberUids.concat([request.auth.uid])
           && request.resource.data.members.size() == resource.data.members.size() + 1
           && request.resource.data.members.size() <=
-             get(/databases/$(database)/documents/tournaments/$(resource.data.tournamentId)).data.maxPlayers;
+             get(/databases/$(database)/documents/tournaments/$(resource.data.tournamentId)).data.maxPlayers
+          && get(/databases/$(database)/documents/tournaments/$(resource.data.tournamentId)).data.registrationOpen == true;
       }
     }
 

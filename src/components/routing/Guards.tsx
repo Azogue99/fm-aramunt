@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { canManageTournament, hasAnyRole, resolveHomePanel } from '../../config/roles';
+import { useTournamentBySlug } from '../../hooks/useTournament';
 import { Spinner } from '../ui/EmptyState';
 import type { UserRole } from '../../types';
 
@@ -43,10 +44,11 @@ export const RequireTournamentRole: React.FC<{ children: React.ReactNode }> = ({
   const { slug } = useParams<{ slug: string }>();
   const { user, roles, loading } = useAuth();
   const location = useLocation();
+  const { tournament, loading: tournamentLoading } = useTournamentBySlug(slug);
 
-  if (loading) return <Spinner />;
+  if (loading || tournamentLoading) return <Spinner />;
   if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />;
-  if (slug && canManageTournament(roles, slug)) return <>{children}</>;
+  if (canManageTournament(roles, tournament?.managerRole)) return <>{children}</>;
 
   return <Navigate to={resolveHomePanel(roles) ?? '/participa'} replace />;
 };
