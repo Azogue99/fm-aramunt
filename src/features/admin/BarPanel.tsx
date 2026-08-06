@@ -47,7 +47,11 @@ export const BarPanel: React.FC = () => {
     <>
       <PanelHeader
         title="Barra"
-        description="Els productes i el seu ordre són els que surten al TPV, en aquest mateix ordre."
+        description={
+          isSuperAdmin
+            ? 'Els productes i el seu ordre són els que surten al TPV, en aquest mateix ordre.'
+            : 'Consulta la carta i obre el TPV per començar a cobrar.'
+        }
         actions={
           <LinkButton to="/barra/tpv" variant="secondary">
             <Monitor size={16} /> Obrir el TPV
@@ -56,15 +60,36 @@ export const BarPanel: React.FC = () => {
       />
 
       {!isSuperAdmin ? (
-        <EmptyState
-          title="Els productes els gestiona el Super-Admin"
-          description="Tu pots obrir el TPV i cobrar; per canviar la carta, parla amb l'administrador."
-          action={
-            <LinkButton to="/barra/tpv">
-              <Monitor size={16} /> Obrir el TPV
-            </LinkButton>
-          }
-        />
+        loading ? (
+          <Spinner />
+        ) : products.length === 0 ? (
+          <EmptyState
+            title="Encara no hi ha cap producte a la carta"
+            description="Quan la comissió l'hagi preparada, els podràs cobrar des del TPV."
+            action={
+              <LinkButton to="/barra/tpv">
+                <Monitor size={16} /> Obrir el TPV
+              </LinkButton>
+            }
+          />
+        ) : (
+          <section className="max-w-3xl">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">Carta</h2>
+              <LinkButton to="/barra/tpv">
+                <Monitor size={16} /> Obrir el TPV i cobrar
+              </LinkButton>
+            </div>
+            <ul className="grid gap-px overflow-hidden border border-hairline bg-hairline sm:grid-cols-2">
+              {products.map((product) => (
+                <li key={product.id} className="flex items-center justify-between gap-4 bg-white px-5 py-4">
+                  <span className="font-medium text-ink">{product.name}</span>
+                  <span className="font-mono text-sm font-semibold text-ink">{formatPrice(product.price)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
       ) : (
         <>
           <form onSubmit={handleAdd} className="mb-8 grid max-w-2xl gap-3 sm:grid-cols-[1fr_7rem_6rem_auto] sm:items-end">
