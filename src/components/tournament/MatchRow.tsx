@@ -29,15 +29,15 @@ export const MatchRow: React.FC<MatchRowProps> = ({ match, teamName, groupName, 
         </span>
       </div>
 
-      <div className="flex flex-grow items-center gap-3">
-        <span className={cn('flex-1 text-right', homeWon ? 'font-bold text-ink' : 'text-muted')}>{home}</span>
-        <span className="min-w-[3.5rem] text-center font-mono text-lg font-bold text-ink">
+      <div className="flex min-w-0 flex-grow items-center gap-2 sm:gap-3">
+        <span className={cn('min-w-0 flex-1 break-words text-right', homeWon ? 'font-bold text-ink' : 'text-muted')}>{home}</span>
+        <span className="shrink-0 min-w-[3.5rem] text-center font-mono text-lg font-bold text-ink">
           {played ? `${match.homeScore}-${match.awayScore}` : '·'}
         </span>
-        <span className={cn('flex-1', awayWon ? 'font-bold text-ink' : 'text-muted')}>{away}</span>
+        <span className={cn('min-w-0 flex-1 break-words', awayWon ? 'font-bold text-ink' : 'text-muted')}>{away}</span>
       </div>
 
-      {actions && <div className="flex shrink-0 gap-2">{actions}</div>}
+      {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
     </li>
   );
 };

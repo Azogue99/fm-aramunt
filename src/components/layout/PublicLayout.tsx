@@ -28,12 +28,12 @@ const SiteHeader: React.FC = () => {
 
   return (
     <header className="border-b border-hairline">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
-        <Link to="/" className="text-2xl font-bold tracking-tight text-ink transition-colors hover:text-brand">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6 sm:py-6">
+        <Link to="/" className="min-w-0 text-2xl font-bold tracking-tight text-ink transition-colors hover:text-brand">
           {SITE_NAME}
         </Link>
 
-        <nav className="hidden items-center gap-8 sm:flex">
+        <nav className="hidden items-center gap-6 md:gap-8 sm:flex">
           {PUBLIC_NAV.map((item) => (
             <NavLink key={item.to} to={item.to} className={navLinkClasses}>
               {item.label}
@@ -56,7 +56,7 @@ const SiteHeader: React.FC = () => {
       </div>
 
       {open && (
-        <nav className="flex flex-col gap-1 border-t border-hairline px-6 pb-4 sm:hidden">
+        <nav className="flex flex-col gap-1 border-t border-hairline px-4 pb-4 sm:hidden">
           {[...PUBLIC_NAV, account].map((item) => (
             <NavLink key={item.to} to={item.to} className={({ isActive }) => cn(navLinkClasses({ isActive }), 'py-3')}>
               {item.label}
@@ -70,8 +70,8 @@ const SiteHeader: React.FC = () => {
 
 const SiteFooter: React.FC = () => (
   <footer className="mt-auto border-t border-hairline">
-    <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-6 py-10 text-sm text-muted sm:flex-row sm:justify-between">
-      <p>
+    <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-4 py-8 text-center text-sm text-muted sm:flex-row sm:justify-between sm:px-6 sm:py-10 sm:text-left">
+      <p className="min-w-0">
         © {new Date().getFullYear()} Festa Major d&apos;Aramunt · #SOCARBASSOT
       </p>
       {/* Única xarxa social de la comissió. Abans hi havia dos href="#" morts. */}
@@ -79,7 +79,7 @@ const SiteFooter: React.FC = () => (
         href={INSTAGRAM_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 font-semibold text-ink transition-colors hover:text-brand"
+        className="inline-flex max-w-full items-center gap-2 font-semibold text-ink transition-colors hover:text-brand"
       >
         <InstagramIcon size={18} />
         @fmaramunt
@@ -99,7 +99,7 @@ export const PublicLayout: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.25 }}
-        className="mx-auto w-full max-w-5xl flex-grow px-6 py-14"
+        className="mx-auto w-full max-w-5xl flex-grow px-4 py-8 sm:px-6 sm:py-14"
       >
         <Outlet />
       </motion.main>
@@ -118,11 +118,11 @@ interface PageHeaderProps {
 export const PageHeader: React.FC<PageHeaderProps> = ({ title, lead, actions }) => (
   <div className="mb-12 border-b border-hairline pb-8">
     <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-      <div className="prose-column">
-        <h1 className="text-4xl font-bold tracking-tight text-ink sm:text-5xl">{title}</h1>
+      <div className="min-w-0 prose-column">
+        <h1 className="text-3xl font-bold tracking-tight text-ink sm:text-5xl">{title}</h1>
         {lead && <p className="mt-4 text-lg leading-relaxed text-muted">{lead}</p>}
       </div>
-      {actions && <div className="flex shrink-0 gap-2">{actions}</div>}
+      {actions && <div className="flex max-w-full shrink-0 flex-wrap gap-2">{actions}</div>}
     </div>
   </div>
 );

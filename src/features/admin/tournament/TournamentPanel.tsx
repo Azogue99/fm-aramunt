@@ -108,7 +108,7 @@ export const TournamentPanel: React.FC = () => {
         {pending.length > 0 && <Badge tone="pending">{pending.length} equips per validar</Badge>}
       </div>
 
-      <div className="mb-8 flex gap-6 border-b border-hairline" role="tablist">
+      <div className="mb-8 flex gap-6 overflow-x-auto border-b border-hairline" role="tablist">
         {(tournament.format === 'knockout' ? TABS.filter((item) => item.id !== 'grups') : TABS).map((item) => (
           <button
             key={item.id}
@@ -117,7 +117,7 @@ export const TournamentPanel: React.FC = () => {
             aria-selected={tab === item.id}
             onClick={() => setTab(item.id)}
             className={cn(
-              '-mb-px border-b-2 pb-3 text-sm font-semibold uppercase tracking-wide transition-colors',
+              '-mb-px shrink-0 border-b-2 pb-3 text-sm font-semibold uppercase tracking-wide transition-colors',
               tab === item.id ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink',
             )}
           >

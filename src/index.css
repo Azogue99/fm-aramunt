@@ -29,11 +29,46 @@ body,
   min-height: 100%;
 }
 
+html {
+  min-height: 100%;
+  overflow-x: clip;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   background-color: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+/* Els noms d'equips, URLs i textos que arriben del CMS no poden eixamplar la
+   pàgina en pantalles estretes. */
+h1,
+h2,
+h3,
+h4,
+p,
+li,
+dd {
+  overflow-wrap: anywhere;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
 }
 
 /* Amplada de lectura: el que feia net el disseny del 2025 era no deixar mai

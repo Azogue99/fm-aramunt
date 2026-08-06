@@ -74,7 +74,7 @@ export const AdminLayout: React.FC = () => {
         </div>
       </aside>
 
-      <main className="min-w-0 flex-grow px-5 py-8 lg:px-10">
+      <main className="min-w-0 flex-grow px-4 py-6 sm:px-5 sm:py-8 lg:px-10">
         {panels.length === 0 ? (
           <EmptyState
             title="Encara no tens cap permís assignat"
@@ -97,10 +97,10 @@ interface PanelHeaderProps {
 
 export const PanelHeader: React.FC<PanelHeaderProps> = ({ title, description, actions }) => (
   <header className="mb-8 flex flex-col gap-4 border-b border-hairline pb-6 sm:flex-row sm:items-end sm:justify-between">
-    <div>
+    <div className="min-w-0">
       <h1 className="text-2xl font-bold tracking-tight text-ink">{title}</h1>
       {description && <p className="mt-1 max-w-2xl text-sm text-muted">{description}</p>}
     </div>
-    {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
+    {actions && <div className="flex max-w-full shrink-0 flex-wrap gap-2">{actions}</div>}
   </header>
 );

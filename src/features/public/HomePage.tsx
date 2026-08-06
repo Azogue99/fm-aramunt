@@ -18,7 +18,7 @@ export const HomePage: React.FC = () => {
   const { content } = useSiteContent();
 
   return (
-    <div className="flex flex-col items-center gap-14 text-center">
+    <div className="flex flex-col items-center gap-10 text-center sm:gap-14">
       <img
         src={MASCOT_IMAGE}
         alt="El Carbassot ballant a la plaça"
@@ -28,10 +28,10 @@ export const HomePage: React.FC = () => {
       />
 
       <div className="prose-column">
-        <h1 className="text-5xl font-bold leading-[1.05] tracking-tight text-ink sm:text-6xl">
+        <h1 className="text-4xl font-bold leading-[1.05] tracking-tight text-ink sm:text-6xl">
           {content.hero_title}
         </h1>
-        <p className="mt-5 text-xl text-muted">{content.hero_subtitle}</p>
+        <p className="mt-5 text-lg text-muted sm:text-xl">{content.hero_subtitle}</p>
       </div>
 
       <nav className="grid w-full gap-px border border-hairline bg-hairline sm:grid-cols-3">
@@ -39,7 +39,7 @@ export const HomePage: React.FC = () => {
           <Link
             key={item.to}
             to={item.to}
-            className="group flex flex-col items-center gap-2 bg-paper px-6 py-10 transition-colors hover:bg-white"
+            className="group flex flex-col items-center gap-2 bg-paper px-5 py-8 transition-colors hover:bg-white sm:px-6 sm:py-10"
           >
             <span className="inline-flex items-center gap-2 text-lg font-bold text-ink transition-colors group-hover:text-brand">
               {item.label}

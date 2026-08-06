@@ -112,8 +112,8 @@ export const BracketTab: React.FC<BracketTabProps> = ({
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-4 border border-hairline bg-white p-5 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex items-end gap-3">
+      <div className="flex flex-col gap-4 border border-hairline bg-white p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5">
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="knockout-size" className="text-sm font-semibold text-ink">
               Equips a l&apos;eliminatòria

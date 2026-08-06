@@ -226,11 +226,11 @@ const TeamCard: React.FC<{ team: Team; tournament: Tournament | null }> = ({ tea
   return (
     <section className="border-t border-hairline pt-8">
       <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-2xl font-bold text-ink">{team.name}</h2>
           <p className="mt-1 text-sm text-muted">{tournament?.name ?? 'Torneig desconegut'}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge tone={status.tone}>{status.label}</Badge>
           {isCaptain && <Badge>Ets el capità</Badge>}
         </div>
@@ -250,9 +250,9 @@ const TeamCard: React.FC<{ team: Team; tournament: Tournament | null }> = ({ tea
       </h3>
       <ul className="mb-6 border-t border-hairline">
         {team.members.map((member, index) => (
-          <li key={`${member.uid ?? 'guest'}-${index}`} className="flex items-center justify-between border-b border-hairline py-3">
-            <span className="flex items-center gap-2 text-sm">
-              <span className="font-medium text-ink">{member.name}</span>
+          <li key={`${member.uid ?? 'guest'}-${index}`} className="flex min-w-0 items-center justify-between gap-3 border-b border-hairline py-3">
+            <span className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
+              <span className="min-w-0 break-words font-medium text-ink">{member.name}</span>
               {member.uid === team.captainUid && <Badge>Capità</Badge>}
               {member.uid === null && <Badge tone="neutral">Sense compte</Badge>}
             </span>

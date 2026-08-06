@@ -74,21 +74,21 @@ export const BarPOS: React.FC = () => {
   const change = state.cash - total;
 
   return (
-    <div className="flex h-screen w-screen touch-none select-none flex-col overflow-hidden bg-neutral-900 text-white lg:flex-row">
+    <div className="flex h-[100dvh] w-full select-none flex-col overflow-hidden bg-neutral-900 text-white lg:flex-row">
       {/* Productes */}
-      <section className="flex h-1/2 flex-col border-neutral-700 lg:h-full lg:w-7/12 lg:border-r">
-        <header className="z-10 flex items-center justify-between bg-neutral-800 px-4 py-3">
-          <h1 className="text-lg font-bold tracking-wide">Barra Aramunt</h1>
+      <section className="flex h-1/2 min-h-0 flex-col border-neutral-700 lg:h-full lg:w-7/12 lg:border-r">
+        <header className="z-10 flex shrink-0 items-center justify-between gap-3 bg-neutral-800 px-3 py-2.5 sm:px-4 sm:py-3">
+          <h1 className="min-w-0 text-base font-bold tracking-wide sm:text-lg">Barra Aramunt</h1>
           <button
             type="button"
             onClick={() => navigate('/panell/barra')}
-            className="flex items-center gap-2 rounded bg-neutral-700 px-3 py-2 text-sm transition-colors hover:bg-neutral-600"
+            className="shrink-0 rounded bg-neutral-700 px-2.5 py-2 text-sm transition-colors hover:bg-neutral-600 sm:flex sm:items-center sm:gap-2 sm:px-3"
           >
-            <X size={16} /> Sortir del TPV
+            <X size={16} className="sm:inline-block" /> <span className="hidden sm:inline">Sortir del TPV</span><span className="sm:hidden">Sortir</span>
           </button>
         </header>
 
-        <div className="grid flex-1 auto-rows-[minmax(72px,1fr)] content-start gap-2 overflow-y-auto p-2 sm:grid-cols-3">
+        <div className="grid min-h-0 flex-1 grid-cols-2 auto-rows-[minmax(72px,1fr)] content-start gap-2 overflow-y-auto overscroll-contain p-2 sm:grid-cols-3">
           {products.length === 0 ? (
             <p className="col-span-full mt-10 text-center text-neutral-400">
               Cap producte. Afegeix-ne des del panell de la barra.
@@ -100,9 +100,9 @@ export const BarPOS: React.FC = () => {
                 type="button"
                 onClick={() => dispatch({ type: 'add', product })}
                 style={{ touchAction: 'manipulation' }}
-                className="flex flex-col items-center justify-center rounded border-2 border-neutral-700 bg-neutral-800 p-2 transition-colors active:border-brand active:bg-brand"
+                className="flex min-w-0 flex-col items-center justify-center rounded border-2 border-neutral-700 bg-neutral-800 p-2 transition-colors active:border-brand active:bg-brand"
               >
-                <span className="line-clamp-2 text-center text-lg font-bold leading-tight">{product.name}</span>
+                <span className="line-clamp-2 break-words text-center text-base font-bold leading-tight sm:text-lg">{product.name}</span>
                 <span className="mt-1 font-mono text-sm text-neutral-300">{formatPrice(product.price)}</span>
               </button>
             ))
@@ -111,19 +111,19 @@ export const BarPOS: React.FC = () => {
       </section>
 
       {/* Tiquet i canvi */}
-      <section className="flex h-1/2 flex-col bg-neutral-800 lg:h-full lg:w-5/12">
-        <header className="flex items-center justify-between bg-neutral-900 px-3 py-2">
+      <section className="flex h-1/2 min-h-0 flex-col bg-neutral-800 lg:h-full lg:w-5/12">
+        <header className="flex shrink-0 items-center justify-between gap-3 bg-neutral-900 px-3 py-2">
           <h2 className="text-sm font-semibold uppercase tracking-wide">Tiquet</h2>
           <button
             type="button"
             onClick={() => dispatch({ type: 'clear' })}
-            className="flex items-center gap-2 rounded bg-red-900/60 px-3 py-1.5 text-sm text-red-200 transition-colors hover:bg-red-900"
+            className="shrink-0 rounded bg-red-900/60 px-3 py-1.5 text-sm text-red-200 transition-colors hover:bg-red-900 sm:flex sm:items-center sm:gap-2"
           >
-            <Trash2 size={14} /> Buidar
+            <Trash2 size={14} /> <span className="hidden sm:inline">Buidar</span>
           </button>
         </header>
 
-        <ul className="flex-1 space-y-1 overflow-y-auto p-2">
+        <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain p-2">
           {state.cart.length === 0 ? (
             <li className="mt-8 text-center text-sm text-neutral-500">
               Toca un producte per començar. Toca una línia del tiquet per treure&apos;n una unitat.
@@ -134,15 +134,15 @@ export const BarPOS: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => dispatch({ type: 'remove', productId: item.product.id })}
-                  className="flex w-full items-center justify-between rounded bg-neutral-700/50 p-3 text-left transition-colors active:bg-neutral-600"
+                  className="flex w-full min-w-0 items-center justify-between gap-3 rounded bg-neutral-700/50 p-2.5 text-left transition-colors active:bg-neutral-600 sm:p-3"
                 >
-                  <span className="flex items-center gap-3">
-                    <span className="w-8 rounded bg-neutral-900 py-1 text-center text-sm font-bold">
+                  <span className="flex min-w-0 items-center gap-2 sm:gap-3">
+                    <span className="w-8 shrink-0 rounded bg-neutral-900 py-1 text-center text-sm font-bold">
                       {item.quantity}
                     </span>
-                    <span className="font-medium">{item.product.name}</span>
+                    <span className="min-w-0 break-words font-medium">{item.product.name}</span>
                   </span>
-                  <span className="font-mono text-neutral-300">
+                  <span className="shrink-0 font-mono text-neutral-300">
                     {formatPrice(item.product.price * item.quantity)}
                   </span>
                 </button>
@@ -151,17 +151,17 @@ export const BarPOS: React.FC = () => {
           )}
         </ul>
 
-        <div className="flex flex-col border-t-4 border-black">
+        <div className="shrink-0 border-t-4 border-black">
           <div className="flex items-center justify-between bg-black px-4 py-2">
             <span className="text-sm font-bold uppercase tracking-wide text-neutral-400">Total</span>
-            <span className="font-mono text-3xl font-bold">{formatPrice(total)}</span>
+            <span className="shrink-0 font-mono text-2xl font-bold sm:text-3xl">{formatPrice(total)}</span>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 p-2">
+          <div className="grid grid-cols-4 gap-1.5 p-2 sm:gap-2">
             <button
               type="button"
               onClick={() => dispatch({ type: 'resetCash' })}
-              className="rounded bg-red-900/80 py-3 text-sm font-bold transition-colors active:bg-red-700"
+              className="rounded bg-red-900/80 py-2.5 text-xs font-bold transition-colors active:bg-red-700 sm:py-3 sm:text-sm"
             >
               Netejar
             </button>
@@ -170,28 +170,31 @@ export const BarPOS: React.FC = () => {
                 key={amount}
                 type="button"
                 onClick={() => dispatch({ type: 'cash', amount })}
-                className="rounded border border-emerald-700/50 bg-emerald-800/80 py-3 text-lg font-bold transition-colors active:bg-emerald-600"
+                className="rounded border border-emerald-700/50 bg-emerald-800/80 py-2.5 text-base font-bold transition-colors active:bg-emerald-600 sm:py-3 sm:text-lg"
               >
                 +{amount}€
               </button>
             ))}
           </div>
 
-          <div className="flex items-center justify-between border-t border-neutral-700 bg-neutral-900 px-4 py-3">
-            <div className="flex flex-col">
-              <span className="text-xs uppercase tracking-widest text-neutral-400">
-                Entregat: {formatPrice(state.cash)}
+          <div className="border-t border-neutral-700 bg-neutral-900">
+            <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-4 sm:py-3">
+              <span className="text-sm font-bold uppercase tracking-wide text-neutral-400">Entregat</span>
+              <span className="shrink-0 font-mono text-3xl font-bold text-white sm:text-4xl">
+                {formatPrice(state.cash)}
               </span>
-              <span className="text-lg font-bold uppercase text-amber-400">Canvi</span>
             </div>
-            <span
-              className={cn(
-                'font-mono text-4xl font-bold',
-                change >= 0 ? 'text-emerald-400' : 'text-neutral-600',
-              )}
-            >
-              {formatPrice(Math.max(change, 0))}
-            </span>
+            <div className="flex items-center justify-between gap-3 border-t border-neutral-700 px-3 py-2.5 sm:px-4 sm:py-3">
+              <span className="text-sm font-bold uppercase tracking-wide text-amber-400">Canvi</span>
+              <span
+                className={cn(
+                  'shrink-0 font-mono text-3xl font-bold sm:text-4xl',
+                  change >= 0 ? 'text-emerald-400' : 'text-neutral-600',
+                )}
+              >
+                {formatPrice(Math.max(change, 0))}
+              </span>
+            </div>
           </div>
         </div>
       </section>

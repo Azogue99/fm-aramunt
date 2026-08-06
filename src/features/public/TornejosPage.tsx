@@ -57,13 +57,13 @@ const TournamentRow: React.FC<{ tournament: Tournament }> = ({ tournament }) => 
       to={`/tornejos/${tournament.slug}`}
       className="group flex flex-col gap-3 py-6 transition-colors hover:bg-white sm:flex-row sm:items-center sm:justify-between sm:px-2"
     >
-      <div>
+      <div className="min-w-0">
         <h2 className="text-2xl font-bold text-ink transition-colors group-hover:text-brand">{tournament.name}</h2>
         <p className="mt-1 text-sm text-muted">
           {tournament.minPlayers}–{tournament.maxPlayers} jugadors per equip
         </p>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
         <Badge tone={PHASE_TONE[tournament.phase]}>{PHASE_LABEL[tournament.phase]}</Badge>
         {tournament.registrationOpen && <Badge tone="positive">Inscripcions obertes</Badge>}
         <ArrowRight size={18} className="text-muted transition-transform group-hover:translate-x-1" />

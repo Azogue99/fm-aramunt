@@ -9,8 +9,7 @@ export const MASCOT_IMAGE =
 
 export const POSTER_IMAGE = '/poster-2026.jpeg';
 
-export const LOGO_IMAGE =
-  'https://cdn.prod.website-files.com/6893ba338f49004dbec39510/6893d81b59d9759d7ed49584_CarbassotBailongoCrop-32x32.png';
+export const LOGO_IMAGE = '/pwa-192.png';
 
 export interface NavItem {
   to: string;
