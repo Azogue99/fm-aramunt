@@ -134,7 +134,7 @@ const TeamCard: React.FC<{ team: Team; tournament: Tournament }> = ({ team, tour
         <div className="min-w-0">
           {editing ? (
             <form
-              className="flex items-end gap-2"
+              className="flex flex-col gap-2 sm:flex-row sm:items-end"
               onSubmit={async (event) => {
                 event.preventDefault();
                 await renameTeam(team.id, name);
@@ -143,10 +143,10 @@ const TeamCard: React.FC<{ team: Team; tournament: Tournament }> = ({ team, tour
               }}
             >
               <Input label="Nom de l'equip" value={name} onChange={(event) => setName(event.target.value)} />
-              <Button type="submit" size="sm">
+              <Button type="submit" size="sm" className="self-end">
                 Desar
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
+              <Button variant="ghost" size="sm" className="self-end" onClick={() => setEditing(false)}>
                 Cancel·lar
               </Button>
             </form>
@@ -190,9 +190,9 @@ const TeamCard: React.FC<{ team: Team; tournament: Tournament }> = ({ team, tour
         {team.members.map((member, index) => (
           <li
             key={`${member.uid ?? 'guest'}-${index}`}
-            className="flex items-center gap-2 border border-hairline px-2.5 py-1 text-sm"
+            className="flex min-w-0 items-center gap-2 border border-hairline px-2.5 py-1 text-sm"
           >
-            <span className={member.uid ? 'text-ink' : 'text-muted'}>{member.name}</span>
+            <span className={member.uid ? 'min-w-0 break-words text-ink' : 'min-w-0 break-words text-muted'}>{member.name}</span>
             {member.uid === team.captainUid && <span className="text-xs text-brand">capità</span>}
             <button
               type="button"
@@ -208,7 +208,7 @@ const TeamCard: React.FC<{ team: Team; tournament: Tournament }> = ({ team, tour
 
       <div className="flex flex-col gap-3 border-t border-hairline pt-4 sm:flex-row sm:items-end">
         <form
-          className="flex flex-grow items-end gap-2"
+          className="flex flex-col gap-2 sm:flex-row sm:items-end"
           onSubmit={async (event) => {
             event.preventDefault();
             if (!guestName.trim()) return;
@@ -224,7 +224,7 @@ const TeamCard: React.FC<{ team: Team; tournament: Tournament }> = ({ team, tour
             onChange={(event) => setGuestName(event.target.value)}
             placeholder="Nom i cognoms"
           />
-          <Button type="submit" variant="secondary" size="sm" disabled={!guestName.trim()}>
+          <Button type="submit" variant="secondary" size="sm" className="self-end" disabled={!guestName.trim()}>
             <UserPlus size={14} /> Afegir
           </Button>
         </form>

@@ -99,25 +99,25 @@ const AdminMatchRow: React.FC<{
 
   return (
     <li className="flex flex-col gap-3 border-b border-hairline py-4 lg:flex-row lg:items-center lg:gap-6">
-      <div className="flex shrink-0 items-center gap-2 lg:w-64">
+      <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2 lg:w-64">
         <span className="text-xs text-muted">{formatDayTime(match.scheduledAt)}</span>
         {match.pitch && <span className="text-xs text-muted">· {match.pitch}</span>}
         {match.status === 'live' && <Badge tone="live">Directe</Badge>}
       </div>
 
-      <div className="flex flex-grow items-center gap-3 text-sm">
-        <span className="flex-1 text-right text-ink">
+      <div className="flex min-w-0 flex-grow items-center gap-2 text-sm sm:gap-3">
+        <span className="min-w-0 flex-1 break-words text-right text-ink">
           {teamName(match.homeTeamId) ?? sourceLabel(match.homeSource, groupName)}
         </span>
-        <span className="min-w-[3.5rem] text-center font-mono text-base font-bold text-ink">
+        <span className="shrink-0 min-w-[3.5rem] text-center font-mono text-base font-bold text-ink">
           {played ? `${match.homeScore}-${match.awayScore}` : '·'}
         </span>
-        <span className="flex-1 text-ink">
+        <span className="min-w-0 flex-1 break-words text-ink">
           {teamName(match.awayTeamId) ?? sourceLabel(match.awaySource, groupName)}
         </span>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
         <Badge>{match.phase === 'group' ? groupName(match.groupId ?? '') : ROUND_LABELS[match.round ?? 'final']}</Badge>
         {user && match.status !== 'finished' && (
           <Button

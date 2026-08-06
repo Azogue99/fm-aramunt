@@ -30,8 +30,8 @@ export const AdminLayout: React.FC = () => {
     );
 
   return (
-    <div className="flex min-h-screen flex-col bg-paper lg:flex-row">
-      <aside className="flex shrink-0 flex-col border-b border-hairline bg-white lg:w-64 lg:border-b-0 lg:border-r">
+    <div className="flex min-h-screen min-w-0 flex-col bg-paper lg:flex-row">
+      <aside className="flex w-full min-w-0 shrink-0 flex-col border-b border-hairline bg-white lg:w-64 lg:border-b-0 lg:border-r">
         <div className="flex items-center justify-between px-5 py-5 lg:block">
           <Link to="/" className="text-lg font-bold tracking-tight text-ink">
             FM Aramunt
@@ -39,37 +39,43 @@ export const AdminLayout: React.FC = () => {
           <p className="hidden text-xs text-muted lg:mt-1 lg:block">{user?.displayName ?? user?.email}</p>
         </div>
 
-        <nav className="flex flex-row gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:overflow-visible lg:pb-0">
+        <nav className="grid grid-cols-2 gap-1 px-3 pb-3 lg:flex lg:flex-col lg:pb-0">
           {panels.map((panel) => {
             const Icon = ICONS[panel.icon] ?? Trophy;
             return (
-              <NavLink key={panel.path} to={`/panell/${panel.path}`} className={linkClasses}>
+              <NavLink
+                key={panel.path}
+                to={`/panell/${panel.path}`}
+                className={({ isActive }) => cn(linkClasses({ isActive }), 'min-w-0 justify-center lg:justify-start')}
+              >
                 <Icon size={16} />
-                <span className="whitespace-nowrap">{panel.label}</span>
+                <span className="min-w-0 text-center leading-tight lg:text-left">{panel.label}</span>
               </NavLink>
             );
           })}
         </nav>
 
-        <div className="mt-auto flex flex-row gap-1 border-t border-hairline p-3 lg:flex-col">
-          <NavLink to="/participa" className={linkClasses}>
+        <div className="mt-auto grid grid-cols-3 gap-1 border-t border-hairline p-3 lg:flex lg:flex-col">
+          <NavLink to="/participa" aria-label="El meu equip" className={({ isActive }) => cn(linkClasses({ isActive }), 'justify-center lg:justify-start')}>
             <Users size={16} />
-            <span className="whitespace-nowrap">El meu equip</span>
+            <span className="hidden md:inline">El meu equip</span>
           </NavLink>
           <a
             href="/"
-            className="flex items-center gap-3 rounded px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-ink/5 hover:text-ink"
+            aria-label="Veure la web"
+            className="flex items-center justify-center gap-3 rounded px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-ink/5 hover:text-ink lg:justify-start"
           >
             <ExternalLink size={16} />
-            <span className="whitespace-nowrap">Veure la web</span>
+            <span className="hidden md:inline">Veure la web</span>
           </a>
           <button
             type="button"
             onClick={signOut}
-            className="flex items-center gap-3 rounded px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-red-50 hover:text-red-700"
+            aria-label="Tancar sessió"
+            className="flex items-center justify-center gap-3 rounded px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-red-50 hover:text-red-700 lg:justify-start"
           >
             <LogOut size={16} />
-            <span className="whitespace-nowrap">Tancar sessió</span>
+            <span className="hidden md:inline">Tancar sessió</span>
           </button>
         </div>
       </aside>
