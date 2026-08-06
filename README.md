@@ -1,29 +1,24 @@
-# Festa Major d'Aramunt - Web App
+# Festa Major d'Aramunt 2026
 
-Aquesta és l'aplicació web per a la Festa Major d'Aramunt, desenvolupada amb React, TypeScript, Tailwind CSS i Firebase.
+Web de la Festa Major d'Aramunt feta amb React, TypeScript, Tailwind CSS i Firebase.
 
-## Estructura i Novetats
+## Què inclou
 
-La web està organitzada en una estructura multi-pàgina per millorar la navegació i l'estil visual:
-- **Pàgines Públiques:** Inici, Programa, Tornejos (amb fases de grups i eliminatòries) i La Comissió.
-- **Panells de Participant:** Gestió d'equips, invitacions i unió a equips mitjançant enllaços.
-- **Panells d'Administració:** Gestió d'usuaris, rols (Superadmin, Administradors de Bàsquet i Futbol, Barista), tornejos i el TPV per la barra.
+- Web pública multipàgina: inici, programa, tornejos i comissió.
+- Inscripció i gestió d'equips amb enllaços d'invitació.
+- Classificacions, fase de grups i quadre d'eliminatòries.
+- Panells per a superadministració, responsables de cada torneig i barra/TPV.
+- Rols combinables: `superadmin`, `admin_futbol`, `admin_basquet` i `barista`.
 
-El sistema visual s'ha unificat amb components reutilitzables (`Button`, `Field`, `Badge`, `Modal`, `EmptyState`, etc.).
+## Posada en marxa
 
-## Seguretat i Configuració d'Entorn (Secrets)
+Necessites Node.js 20 o posterior i un projecte Firebase amb Authentication (Google) i Firestore activats.
 
-L'aplicació utilitza Firebase per a l'autenticació i la base de dades (Firestore). **MAI** has de pujar credencials reals al repositori públic.
+```bash
+npm ci
+```
 
-### Com obtenir els secrets:
-1. Accedeix a la consola de [Firebase](https://console.firebase.google.com/).
-2. Crea un projecte o selecciona el projecte corresponent.
-3. Ves a "Configuració del projecte" (roda dentada) -> "General".
-4. A la secció de les teves aplicacions (o afegeix una app Web si no n'hi ha cap), trobaràs la configuració del SDK de Firebase.
-
-### Configuració Local
-Crea un fitxer anomenat `.env.local` a l'arrel d'aquest projecte (Aquest fitxer està ignorat per `.gitignore`).
-Afegeix-hi les variables següents (substitueix els valors pels del teu projecte Firebase):
+Crea `.env.local` a l'arrel (és ignorat per Git) amb la configuració de la teva aplicació web de Firebase:
 
 ```env
 VITE_FIREBASE_API_KEY=el_teu_api_key
@@ -34,7 +29,41 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=el_teu_sender_id
 VITE_FIREBASE_APP_ID=el_teu_app_id
 ```
 
-## Comandes Útils
-- `npm run dev`: Inicia el servidor de desenvolupament.
-- `npm run build`: Construeix l'aplicació per a producció (verifica els tipus i fa el linting).
-- `firebase deploy`: Desplega l'aplicació i les regles de Firestore a Firebase Hosting (requereix tenir instal·lat Firebase CLI i haver fet login amb `firebase login`).
+Arrenca el servidor local amb `npm run dev`. Per comprovar la compilació de producció, executa `npm run build`; el lint s'executa independentment amb `npm run lint`.
+
+## Dades inicials de Firestore
+
+Perquè aparegui un torneig, crea un document a `tournaments` amb un id qualsevol i una estructura com aquesta. El `slug` és el que defineix l'URL pública (`/tornejos/futbol`) i la seva ruta de panell (`/panell/tornejos/futbol`).
+
+```json
+{
+  "slug": "futbol",
+  "name": "Futbol 5v5",
+  "sport": "futbol",
+  "year": 2026,
+  "managerRole": "admin_futbol",
+  "registrationOpen": true,
+  "minPlayers": 5,
+  "maxPlayers": 8,
+  "phase": "inscripcions",
+  "groups": [],
+  "knockoutSize": 4,
+  "qualifiersPerGroup": 2,
+  "order": 1
+}
+```
+
+El primer superadministrador s'ha d'assignar manualment al document `users/{uid}` amb `roles: ["superadmin"]`. Després, des del panell d'usuaris, pots gestionar rols i reservar-los per a persones que encara no han iniciat sessió.
+
+## Regles i desplegament
+
+`firestore.rules` protegeix les escriptures segons el rol i impedeix que una persona s'autoassigni permisos. `firestore.indexes.json` conté l'índex compost necessari per consultar els partits d'eliminatòria per torneig.
+
+Amb la [Firebase CLI](https://firebase.google.com/docs/cli) autenticada i el projecte correcte configurat a `.firebaserc`:
+
+```bash
+npm run build
+firebase deploy
+```
+
+Aquesta ordre publica Hosting, les regles i els índexs. No pugis mai `.env.local` ni cap credencial de servei al repositori.

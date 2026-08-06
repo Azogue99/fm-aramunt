@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "matches",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tournamentId", "order": "ASCENDING" },
+        { "fieldPath": "phase", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
