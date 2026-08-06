@@ -78,9 +78,9 @@ export const AppRoutes: React.FC = () => (
     <Route
       path="/panell"
       element={
-        <RequireAuth>
+        <RequireRole allowed={['superadmin', 'admin_futbol', 'admin_basquet', 'barista']}>
           <AdminLayout />
-        </RequireAuth>
+        </RequireRole>
       }
     >
       <Route index element={<PanelIndex />} />
