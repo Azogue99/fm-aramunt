@@ -1,0 +1,698 @@
+He explorat tot el codi (~1.500 línies) i he vist les dues webs en viu. Abans d'escriure el pla, tres decisions que canvien força la feina.
+
+Resum ràpid de la crítica (el detall va al pla):
+
+L'any passat cada pàgina feia una sola cosa (Notícies / Calendari / Comissió) amb molt aire. Aquest any tot cau a /: hero → 2 taules de tornejos → programa → notes. Són ~4.000px d'scroll i el que un visitant vol (què hi ha i quan) queda sota dues taules buides.
+No hi ha sistema visual: 4 radis diferents, 3 formes de botó, i el taronja de marca compiteix amb orange-600 del bàsquet i green-600 del futbol. Cada panell d'admin sembla un producte diferent (vermell / verd / taronja / gris fosc).
+Detalls trencats: "Programa" surt sempre marcat com a actiu (LandingPage.tsx:86), el CTA diu "Programa 2025" amb subtítol 2026, "Llegir TOT" és un <div> que no fa res, i el footer té Facebook i Email apuntant a href="#".
+Com estructurem la web pública?
+
+Multi-pàgina com l'any passat (Recomanat)
+
+Quin estil visual vols per la web pública?
+
+Editorial net (Recomanat)
+
+Fins on ha d'arribar el sistema de partits/tornejos?
+
+Partits + fases (grups i eliminatòries)
+
+
+Leyó un archivo, ejecutado un comando, creado un archivo
++236
+-0
+Leer
+main.tsx
+Read build and deployed config
+Creado
+shiny-baking-pebble.md
++236
+-0
+Plan propuesto
+
+Ejecutado un comando, usado 10 herramientas
+Ara la capa base. Començo pel config i els types — la font única de veritat dels rols.
+
+
+Creado 3 archivos
++251
+-0
+Creado
+index.ts
++150
+-0
+Creado
+roles.ts
++67
+-0
+Creado
+site.ts
++34
+-0
+Ara la capa lib.
+
+
+Creado 4 archivos
++74
+-0
+Creado
+firebase.ts
++18
+-0
+Creado
+cn.ts
++6
+-0
+Creado
+format.ts
++37
+-0
+Creado
+inviteCode.ts
++13
+-0
+Ara els hooks genèrics de Firestore, que substitueixen les subscripcions inline repetides a cada pàgina.
+
+
+Creado 2 archivos
++87
+-0
+Creado
+useCollection.ts
++50
+-0
+Creado
+useDocument.ts
++37
+-0
+Ara la capa de serveis — totes les crides a Firestore concentrades i tipades.
+
+
+Creado 3 archivos
++438
+-0
+Creado
+tournaments.ts
++47
+-0
+Creado
+teams.ts
++113
+-0
+Creado
+matches.ts
++278
+-0
+El generador d'eliminatòries m'ha quedat enrevessat i amb un problema real: els matchId de destí no existeixen fins que s'escriuen. El reescric generant els ids per endavant.
+
+
+Creado 4 archivos
++229
+-68
+Actualizado
+matches.ts
++128
+-68
+Creado
+users.ts
++57
+-0
+Creado
+barProducts.ts
++19
+-0
+Creado
+content.ts
++25
+-0
+Ara el AuthContext nou (sense bloquejar el render públic) i els guards.
+
+Actualizado
+AuthContext.tsx
++55
+-44
+C:\Users\arna1\Documents\repos\fm-aramunt\src\context\
+AuthContext.tsx
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { type User, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
+import { auth, db } from '../lib/firebase';
+import { USERS, fetchInvite } from '../services/users';
+import type { UserRole } from '../types';
+
+export type UserRole = 'superadmin' | 'admin_futbol' | 'admin_basquet' | 'barista';
+
+interface AuthContextType {
+interface AuthContextValue {
+  user: User | null;
+  roles: UserRole[];
+  loading: boolean;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType>({
+const AuthContext = createContext<AuthContextValue>({
+  user: null,
+  roles: [],
+  loading: true,
+  signOut: async () => {},
+});
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const useAuth = () => useContext(AuthContext);
+
+/**
+ * Crea el perfil de l'usuari si és el primer cop que entra, reclamant els rols
+ * que el superadmin li hagi reservat per email a `role_invites`.
+ */
+async function ensureProfile(currentUser: User): Promise<UserRole[]> {
+  const userRef = doc(db, USERS, currentUser.uid);
+  const snapshot = await getDoc(userRef);
+
+  if (snapshot.exists()) {
+    const data = snapshot.data();
+    // L'esquema antic guardava un únic `role`; el llegim si encara no hi ha `roles`.
+    const roles: UserRole[] = data.roles ?? [];
+    return roles.length === 0 && data.role ? [data.role as UserRole] : roles;
+  }
+
+  const invite = currentUser.email ? await fetchInvite(currentUser.email) : null;
+  const roles = invite?.roles ?? [];
+
+  await setDoc(userRef, {
+    email: currentUser.email,
+    name: currentUser.displayName,
+    photoURL: currentUser.photoURL,
+    roles,
+  });
+
+  return roles;
+}
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [roles, setRoles] = useState<UserRole[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        try {
+          const userRef = doc(db, 'users', currentUser.uid);
+          let userDoc = await getDoc(userRef);
+          
+          // Si l'usuari no existeix, el creem automàticament sense rols perquè el Super-Admin el vegi
+          if (!userDoc.exists()) {
+            await setDoc(userRef, {
+              email: currentUser.email,
+              name: currentUser.displayName,
+              roles: []
+            });
+            userDoc = await getDoc(userRef);
+          }
+  useEffect(
+    () =>
+      onAuthStateChanged(auth, async (currentUser) => {
+        setUser(currentUser);
+
+          let fetchedRoles = userDoc.data()?.roles || [];
+          
+          // Suport per la migració de l'antic format de rol únic (role) a múltiple (roles)
+          if (userDoc.data()?.role && fetchedRoles.length === 0) {
+            fetchedRoles = [userDoc.data()?.role];
+          }
+        if (!currentUser) {
+          setRoles([]);
+          setLoading(false);
+          return;
+        }
+
+          setRoles(fetchedRoles);
+        try {
+          setRoles(await ensureProfile(currentUser));
+        } catch (error) {
+          console.error("Error fetching user roles:", error);
+          console.error('No s\'han pogut carregar els rols', error);
+          setRoles([]);
+        }
+      } else {
+        setRoles([]);
+      }
+      setLoading(false);
+    });
+        setLoading(false);
+      }),
+    [],
+  );
+
+    return unsubscribe;
+  }, []);
+
+  const signOut = async () => {
+    await firebaseSignOut(auth);
+  };
+
+  // A diferència de la versió anterior, els fills es renderitzen sempre: la web
+  // pública no ha d'esperar que Firebase resolgui l'autenticació. Els guards
+  // (`RequireAuth`, `RequireRole`) són els únics que miren `loading`.
+  return (
+    <AuthContext.Provider value={{ user, roles, loading, signOut }}>
+      {!loading && children}
+    <AuthContext.Provider value={{ user, roles, loading, signOut: () => firebaseSignOut(auth) }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+Ara els components d'UI base — el vocabulari visual compartit.
+
+
+Creado 6 archivos
++362
+-0
+Creado
+Button.tsx
++73
+-0
+Creado
+Field.tsx
++62
+-0
+Creado
+Badge.tsx
++34
+-0
+Creado
+EmptyState.tsx
++22
+-0
+Creado
+Modal.tsx
++63
+-0
+Creado
+Feedback.tsx
++108
+-0
+Ara els guards de rutes i el @theme nou.
+
+
+Creado 2 archivos
++74
+-10
+Creado
+Guards.tsx
++36
+-0
+Actualizado
+index.css
++38
+-10
+Ara netejo els fitxers morts i faig un build de comprovació de la capa base.
+
+
+Ejecutado 2 comandos
+Moved reference files to docs, remove dead files
+Removed unused asset and typechecked
+La capa base compila neta; els errors restants són només les pàgines antigues que ara substitueixo.
+
+
+Creado 5 archivos, usado 6 herramientas
++284
+-0
+Tareas actualizadas
+Tareas actualizadas
+Creado
+PublicLayout.tsx
++127
+-0
+Tareas actualizadas
+Tareas actualizadas
+Creado
+useSiteContent.ts
++9
+-0
+Creado
+HomePage.tsx
++54
+-0
+Creado
+ProgramaPage.tsx
++66
+-0
+Creado
+ComissioPage.tsx
++28
+-0
+Tareas actualizadas
+Tareas actualizadas
+Ara el nucli dels tornejos: la classificació derivada dels partits.
+
+
+Creado 4 archivos
++337
+-0
+Creado
+useTournament.ts
++122
+-0
+Creado
+StandingsTable.tsx
++85
+-0
+Creado
+MatchRow.tsx
++52
+-0
+Creado
+BracketView.tsx
++78
+-0
+Ara les pàgines públiques de tornejos.
+
+
+Creado 2 archivos, usado 2 herramientas
++236
+-0
+Creado
+TornejosPage.tsx
++73
+-0
+Creado
+TorneigPage.tsx
++163
+-0
+Tareas actualizadas
+Tareas actualizadas
+Ara el panell de participant i el sistema d'invitacions.
+
+
+Creado 2 archivos, editado un archivo
++506
+-2
+Creado
+MyTeamsPage.tsx
++355
+-0
+Editado
+MyTeamsPage.tsx
++4
+-2
+Creado
+JoinTeamPage.tsx
++147
+-0
+Ara la pàgina de login (que ha de respectar el redirect de l'enllaç d'invitació).
+
+
+Creado LoginPage.tsx, usado 2 herramientas
++94
+-0
+Creado
+LoginPage.tsx
++94
+-0
+Tareas actualizadas
+Tareas actualizadas
+Ara l'AdminLayout amb la navegació que faltava.
+
+
+Creado 2 archivos
++266
+-0
+Creado
+AdminLayout.tsx
++106
+-0
+Creado
+ContentPanel.tsx
++160
+-0
+Ara el panell d'usuaris amb gestió de rols i convidar per email.
+
+
+Creado 3 archivos
++558
+-0
+Creado
+UsersPanel.tsx
++225
+-0
+Creado
+BarPanel.tsx
++133
+-0
+Creado
+BarPOS.tsx
++200
+-0
+Ara el panell de tornejos amb les quatre pestanyes.
+
+
+Creado 5 archivos
++1039
+-0
+Creado
+TournamentPanel.tsx
++137
+-0
+Creado
+TeamsTab.tsx
++202
+-0
+Creado
+GroupsTab.tsx
++216
+-0
+Creado
+MatchesTab.tsx
++328
+-0
+Creado
+BracketTab.tsx
++156
+-0
+Ara l'arbre de rutes i l'App.
+
+Creado
+routes.tsx
++134
+-0
+C:\Users\arna1\Documents\repos\fm-aramunt\src\
+routes.tsx
+import React from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { PublicLayout } from './components/layout/PublicLayout';
+import { AdminLayout } from './components/layout/AdminLayout';
+import { RequireAuth, RequireRole } from './components/routing/Guards';
+import { EmptyState } from './components/ui/EmptyState';
+import { LinkButton } from './components/ui/Button';
+import { useAuth } from './context/AuthContext';
+import { resolveHomePanel } from './config/roles';
+
+import { HomePage } from './features/public/HomePage';
+import { ProgramaPage } from './features/public/ProgramaPage';
+import { ComissioPage } from './features/public/ComissioPage';
+import { TornejosPage } from './features/public/TornejosPage';
+import { TorneigPage } from './features/public/TorneigPage';
+import { LoginPage } from './features/auth/LoginPage';
+import { MyTeamsPage } from './features/participant/MyTeamsPage';
+import { JoinTeamPage } from './features/participant/JoinTeamPage';
+import { ContentPanel } from './features/admin/ContentPanel';
+import { UsersPanel } from './features/admin/UsersPanel';
+import { BarPanel } from './features/admin/BarPanel';
+import { TournamentPanel } from './features/admin/tournament/TournamentPanel';
+import { BarPOS } from './features/bar/BarPOS';
+
+/** `/panell` sol: porta al primer panell que aquest usuari pot veure. */
+const PanelIndex: React.FC = () => {
+  const { roles } = useAuth();
+  return <Navigate to={resolveHomePanel(roles) ?? '/participa'} replace />;
+};
+
+const NotFound: React.FC = () => {
+  const location = useLocation();
+  return (
+    <EmptyState
+      title="Aquesta pàgina no existeix"
+      description={`No hem trobat res a ${location.pathname}.`}
+      action={<LinkButton to="/">Tornar a l&apos;inici</LinkButton>}
+    />
+  );
+};
+
+export const AppRoutes: React.FC = () => (
+  <Routes>
+    {/* Pantalles sense el chrome públic */}
+    <Route path="/login" element={<LoginPage />} />
+    <Route
+      path="/barra/tpv"
+      element={
+        <RequireRole allowed={['superadmin', 'barista']}>
+          <BarPOS />
+        </RequireRole>
+      }
+    />
+
+    {/* Web pública */}
+    <Route element={<PublicLayout />}>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/programa" element={<ProgramaPage />} />
+      <Route path="/tornejos" element={<TornejosPage />} />
+      <Route path="/tornejos/:slug" element={<TorneigPage />} />
+      <Route path="/la-comi" element={<ComissioPage />} />
+      <Route path="/unir-se/:code" element={<JoinTeamPage />} />
+
+      <Route
+        path="/participa"
+        element={
+          <RequireAuth>
+            <MyTeamsPage />
+          </RequireAuth>
+        }
+      />
+
+      <Route path="*" element={<NotFound />} />
+    </Route>
+
+    {/* Panells d'administració */}
+    <Route
+      path="/panell"
+      element={
+        <RequireAuth>
+          <AdminLayout />
+        </RequireAuth>
+      }
+    >
+      <Route index element={<PanelIndex />} />
+      <Route
+        path="web"
+        element={
+          <RequireRole allowed={['superadmin']}>
+            <ContentPanel />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="usuaris"
+        element={
+          <RequireRole allowed={['superadmin']}>
+            <UsersPanel />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="barra"
+        element={
+          <RequireRole allowed={['superadmin', 'barista']}>
+            <BarPanel />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="tornejos/futbol"
+        element={
+          <RequireRole allowed={['superadmin', 'admin_futbol']}>
+            <TournamentPanel />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="tornejos/basquet"
+        element={
+          <RequireRole allowed={['superadmin', 'admin_basquet']}>
+            <TournamentPanel />
+          </RequireRole>
+        }
+      />
+    </Route>
+
+    {/* Rutes de la versió anterior, per no trencar enllaços compartits */}
+    <Route path="/admin" element={<Navigate to="/panell" replace />} />
+    <Route path="/bar" element={<Navigate to="/panell/barra" replace />} />
+    <Route path="/futbol" element={<Navigate to="/panell/tornejos/futbol" replace />} />
+    <Route path="/basquet" element={<Navigate to="/panell/tornejos/basquet" replace />} />
+  </Routes>
+);
+El TournamentPanel llegeix :slug, però les rutes el tenien fix. Afegeixo un guard específic per torneig.
+
+
+Editado 2 archivos, creado un archivo, ejecutado 2 comandos, buscado código
++32
+-55
+Editado
+Guards.tsx
++18
+-2
+Editado
+routes.tsx
++4
+-12
+Actualizado
+App.tsx
++10
+-41
+Removed old pages and typechecked
+Inspected lucide-react exports
+Buscado
+instagram
+Lucide v1 va treure les icones de marca. Faig servir un SVG propi.
+
+
+Creado y editado icons.tsx, ejecutado un comando
++28
+-1
+Creado
+icons.tsx
++28
+-0
+Editado
+icons.tsx
++0
+-1
+Swap Instagram icon import and typecheck
+Typecheck net. Ara el build i el lint complets.
+
+
+Ejecutado 2 comandos
+Built the project
+Ran linter
+Netejo els tres avisos del linter.
+
+
+Creado 3 archivos, editado un archivo, ejecutado 2 comandos
++52
+-21
+Actualizado
+useCollection.ts
++34
+-19
+Editado
+useCollection.ts
++2
+-2
+Creado
+controlClasses.ts
++5
+-0
+Creado
+sourceLabel.ts
++11
+-0
+Moved shared helpers out of component files
+Fixed imports, build and linted
+Build i lint nets. Ara les regles de Firestore, els índexs i el README.
+
+
+Creado firestore.rules, usado 2 herramientas
++128
+-14
+Tareas actualizadas
+Tareas actualizadas
+Actualizado
+firestore.rules
++128
+-14
+Límite de uso alcanzado
+Alcanzaste tu límite de uso. Vuelve a intentarlo cuando se restablezca tu límite.

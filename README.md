@@ -2,6 +2,15 @@
 
 Aquesta és l'aplicació web per a la Festa Major d'Aramunt, desenvolupada amb React, TypeScript, Tailwind CSS i Firebase.
 
+## Estructura i Novetats
+
+La web està organitzada en una estructura multi-pàgina per millorar la navegació i l'estil visual:
+- **Pàgines Públiques:** Inici, Programa, Tornejos (amb fases de grups i eliminatòries) i La Comissió.
+- **Panells de Participant:** Gestió d'equips, invitacions i unió a equips mitjançant enllaços.
+- **Panells d'Administració:** Gestió d'usuaris, rols (Superadmin, Administradors de Bàsquet i Futbol, Barista), tornejos i el TPV per la barra.
+
+El sistema visual s'ha unificat amb components reutilitzables (`Button`, `Field`, `Badge`, `Modal`, `EmptyState`, etc.).
+
 ## Seguretat i Configuració d'Entorn (Secrets)
 
 L'aplicació utilitza Firebase per a l'autenticació i la base de dades (Firestore). **MAI** has de pujar credencials reals al repositori públic.
@@ -27,5 +36,5 @@ VITE_FIREBASE_APP_ID=el_teu_app_id
 
 ## Comandes Útils
 - `npm run dev`: Inicia el servidor de desenvolupament.
-- `npm run build`: Construeix l'aplicació per a producció.
-- `firebase deploy`: Desplega l'aplicació a Firebase Hosting (requereix tenir instal·lat Firebase CLI i haver fet login amb `firebase login`).
+- `npm run build`: Construeix l'aplicació per a producció (verifica els tipus i fa el linting).
+- `firebase deploy`: Desplega l'aplicació i les regles de Firestore a Firebase Hosting (requereix tenir instal·lat Firebase CLI i haver fet login amb `firebase login`).

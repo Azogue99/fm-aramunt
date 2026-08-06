@@ -1,20 +1,48 @@
 @import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 @theme {
-  --font-sans: "Montserrat", "Segoe UI", sans-serif;
-  --font-serif: "Roboto", "Segoe UI", sans-serif;
-  --color-primary: #eb5e28;
-  --color-primary-hover: #d25020;
+  /* Una sola família. L'any passat --font-serif apuntava a Roboto, que és sans. */
+  --font-sans: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Paleta editorial: paper càlid que lliga amb el cartell, tinta gairebé negra
+     i una sola hairline. El taronja de marca és l'únic color amb significat. */
+  --color-paper: #faf8f4;
+  --color-ink: #23201d;
+  --color-muted: #6f6862;
+  --color-hairline: #e6e0d6;
+  --color-brand: #eb5e28;
+  --color-brand-ink: #c1481b;
+
+  /* Un sol radi, petit: l'estètica editorial no vol cantonades molles. */
+  --radius-sm: 2px;
+  --radius: 4px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
+  min-height: 100%;
 }
 
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Amplada de lectura: el que feia net el disseny del 2025 era no deixar mai
+   que un paràgraf passés dels ~70 caràcters. */
+.prose-column {
+  max-width: 44rem;
+}
+
+.prose-column p {
+  margin-bottom: 1rem;
+  line-height: 1.75;
+}
