@@ -151,6 +151,7 @@ export interface ProgramEntry {
   time: string;
   title: string;
   detail?: string;
+  order?: number;
 }
 
 export interface SiteContent {

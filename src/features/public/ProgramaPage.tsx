@@ -6,15 +6,20 @@ import { useSiteContent } from '../../hooks/useSiteContent';
 import type { ProgramEntry } from '../../types';
 
 function groupByDay(entries: ProgramEntry[]): [string, ProgramEntry[]][] {
+  const sortedEntries = [...entries].sort((a, b) => {
+    if (a.order !== undefined && b.order !== undefined) return a.order - b.order;
+    if (a.order !== undefined) return -1;
+    if (b.order !== undefined) return 1;
+    return a.time.localeCompare(b.time);
+  });
+
   const byDay = new Map<string, ProgramEntry[]>();
-  for (const entry of entries) {
+  for (const entry of sortedEntries) {
     const list = byDay.get(entry.day) ?? [];
     list.push(entry);
     byDay.set(entry.day, list);
   }
-  for (const list of byDay.values()) {
-    list.sort((a, b) => a.time.localeCompare(b.time));
-  }
+  
   return [...byDay.entries()];
 }
 

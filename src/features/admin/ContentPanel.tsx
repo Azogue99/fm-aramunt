@@ -99,7 +99,7 @@ export const ContentPanel: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={() =>
-                patch({ programa: [...entries, { day: '', time: '', title: '', detail: '' }] })
+                patch({ programa: [...entries, { day: '', time: '', title: '', detail: '', order: entries.length + 1 }] })
               }
             >
               <Plus size={14} /> Afegir acte
@@ -120,7 +120,7 @@ export const ContentPanel: React.FC = () => {
 
           {entries.map((entry, index) => (
             <div key={index} className="flex flex-col gap-3 border border-hairline bg-white p-4">
-              <div className="grid gap-3 sm:grid-cols-[1fr_7rem_auto] sm:items-end">
+              <div className="grid gap-3 sm:grid-cols-[1fr_7rem_5rem_auto] sm:items-end">
                 <Input
                   label="Dia"
                   placeholder="Divendres 7 d'agost"
@@ -132,6 +132,14 @@ export const ContentPanel: React.FC = () => {
                   placeholder="23:00"
                   value={entry.time}
                   onChange={(event) => patchEntry(index, { time: event.target.value })}
+                />
+                <Input
+                  label="Ordre"
+                  type="number"
+                  min="0"
+                  placeholder={String(index + 1)}
+                  value={entry.order ?? ''}
+                  onChange={(event) => patchEntry(index, { order: event.target.value === '' ? undefined : Number.parseInt(event.target.value, 10) })}
                 />
                 <Button
                   variant="ghost"
