@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronDown, ChevronRight, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { PanelHeader } from '../../components/layout/AdminLayout';
 import { Button } from '../../components/ui/Button';
 import { Input, Textarea } from '../../components/ui/Field';
@@ -113,15 +113,36 @@ export const ContentPanel: React.FC = () => {
     );
   };
 
+  const moveDayUp = (index: number) => {
+    if (index === 0) return;
+    setLocalDays((prev) => {
+      const copy = [...prev];
+      [copy[index - 1], copy[index]] = [copy[index], copy[index - 1]];
+      return copy;
+    });
+  };
+
+  const moveDayDown = (index: number) => {
+    if (index === localDays.length - 1) return;
+    setLocalDays((prev) => {
+      const copy = [...prev];
+      [copy[index], copy[index + 1]] = [copy[index + 1], copy[index]];
+      return copy;
+    });
+  };
+
   const flattenDays = (): ProgramEntry[] => {
     return localDays.flatMap((d) =>
-      d.entries.map((e) => ({
-        day: d.day,
-        time: e.time,
-        order: e.order,
-        title: e.title,
-        detail: e.detail || undefined,
-      }))
+      d.entries.map((e) => {
+        const entry: ProgramEntry = {
+          day: d.day,
+          time: e.time,
+          title: e.title,
+        };
+        if (e.order !== undefined) entry.order = e.order;
+        if (e.detail) entry.detail = e.detail;
+        return entry;
+      })
     );
   };
 
@@ -213,7 +234,7 @@ export const ContentPanel: React.FC = () => {
             </p>
           )}
 
-          {localDays.map((dayGroup) => (
+          {localDays.map((dayGroup, index) => (
             <div key={dayGroup.id} className="flex flex-col border border-hairline bg-white shadow-sm transition-all">
               {/* Day Header */}
               <div className="flex items-center justify-between border-b border-hairline bg-ink/5 p-3 sm:px-4">
@@ -236,6 +257,26 @@ export const ContentPanel: React.FC = () => {
                   />
                 </div>
                 <div className="ml-4 flex shrink-0 gap-1 sm:gap-2">
+                  <div className="mr-1 flex items-center rounded bg-ink/5 sm:mr-2">
+                    <button
+                      type="button"
+                      onClick={() => moveDayUp(index)}
+                      disabled={index === 0}
+                      className="p-1.5 text-muted hover:text-ink disabled:opacity-30"
+                      aria-label="Pujar dia"
+                    >
+                      <ArrowUp size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveDayDown(index)}
+                      disabled={index === localDays.length - 1}
+                      className="p-1.5 text-muted hover:text-ink disabled:opacity-30"
+                      aria-label="Baixar dia"
+                    >
+                      <ArrowDown size={14} />
+                    </button>
+                  </div>
                   <Button variant="ghost" size="sm" onClick={() => addEntry(dayGroup.id)}>
                     <Plus size={14} /> <span className="hidden sm:inline">Afegir acte</span>
                   </Button>
