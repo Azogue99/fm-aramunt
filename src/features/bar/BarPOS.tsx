@@ -130,7 +130,7 @@ const ProductMenu: React.FC<{
             key={product.id}
             type="button"
             onClick={() => onAdd(product)}
-            className="flex min-w-0 flex-col items-center justify-center rounded border border-neutral-700 bg-neutral-800 p-1.5 transition-colors active:border-brand active:bg-brand sm:p-2"
+            className="flex min-w-0 flex-col items-center justify-center rounded border border-neutral-700 bg-neutral-800 p-1.5 transition-transform duration-75 active:scale-[0.97] active:border-brand active:bg-brand sm:p-2"
           >
             <span className="line-clamp-2 break-words text-center text-sm font-bold leading-tight sm:text-base">{product.name}</span>
             <span className="mt-0.5 font-mono text-xs text-neutral-300 sm:text-sm">{formatPrice(product.price)}</span>
@@ -156,7 +156,7 @@ const TicketLines: React.FC<{
           <button
             type="button"
             onClick={() => onRemove(item.product.id)}
-            className="flex w-full min-w-0 items-center justify-between gap-2 rounded bg-neutral-800 p-2 text-left active:bg-neutral-700 sm:p-3"
+            className="flex w-full min-w-0 items-center justify-between gap-2 rounded bg-neutral-800 p-2 text-left transition-transform duration-75 active:scale-[0.99] active:bg-neutral-700 sm:p-3"
           >
             <span className="flex min-w-0 items-center gap-2">
               <span className="w-7 shrink-0 rounded bg-neutral-900 py-0.5 text-center text-xs font-bold">{item.quantity}</span>
@@ -176,14 +176,18 @@ const CashControls: React.FC<{
   change: number;
   onCash: (amount: number) => void;
   onReset: () => void;
-}> = ({ total, cash, change, onCash, onReset }) => (
+  showTotal?: boolean;
+  roomy?: boolean;
+}> = ({ total, cash, change, onCash, onReset, showTotal = true, roomy = false }) => (
   <div className="shrink-0 border-t-2 border-black bg-neutral-900">
-    <div className="flex items-center justify-between bg-black px-3 py-1.5 sm:px-4 sm:py-2">
-      <span className="text-xs font-bold uppercase tracking-wide text-neutral-400">Total</span>
-      <span className="font-mono text-xl font-bold sm:text-2xl">{formatPrice(total)}</span>
-    </div>
+    {showTotal && (
+      <div className="flex items-center justify-between bg-black px-3 py-1.5 sm:px-4 sm:py-2">
+        <span className="text-xs font-bold uppercase tracking-wide text-neutral-400">Total</span>
+        <span className="font-mono text-xl font-bold sm:text-2xl">{formatPrice(total)}</span>
+      </div>
+    )}
     <div className="grid grid-cols-4 gap-1 p-1.5 sm:gap-1.5 sm:p-2">
-      <button type="button" onClick={onReset} className="h-8 rounded bg-red-900/80 text-xs font-bold active:bg-red-700 sm:h-10">
+      <button type="button" onClick={onReset} className={cn('rounded bg-red-900/80 text-xs font-bold transition-transform duration-75 active:scale-[0.97] active:bg-red-700', roomy ? 'h-11 sm:h-12' : 'h-8 sm:h-10')}>
         Netejar
       </button>
       {DENOMINATIONS.map((amount) => (
@@ -191,7 +195,7 @@ const CashControls: React.FC<{
           key={amount}
           type="button"
           onClick={() => onCash(amount)}
-          className="h-8 rounded border border-emerald-700/50 bg-emerald-800/80 text-sm font-bold active:bg-emerald-600 sm:h-10 sm:text-base"
+          className={cn('rounded border border-emerald-700/50 bg-emerald-800/80 font-bold transition-transform duration-75 active:scale-[0.97] active:bg-emerald-600', roomy ? 'h-11 text-base sm:h-12 sm:text-lg' : 'h-8 text-sm sm:h-10 sm:text-base')}
         >
           +{amount}€
         </button>
@@ -204,8 +208,8 @@ const CashControls: React.FC<{
       </div>
       <div className="min-w-0 px-3 py-1.5 sm:px-4 sm:py-2">
         <span className="block text-[0.65rem] font-bold uppercase tracking-wide text-amber-400">Canvi</span>
-        <span className={cn('block truncate font-mono text-lg font-bold sm:text-2xl', change >= 0 ? 'text-emerald-400' : 'text-neutral-600')}>
-          {formatPrice(Math.max(change, 0))}
+        <span className={cn('block truncate font-mono text-lg font-bold sm:text-2xl', change >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+          {formatPrice(change)}
         </span>
       </div>
     </div>
@@ -293,12 +297,12 @@ export const BarPOS: React.FC = () => {
               className="flex w-full items-center justify-between gap-3 bg-neutral-800 px-3 py-2 text-left"
               aria-expanded={cashOpen}
             >
-              <span className="text-sm font-bold uppercase tracking-wide text-amber-400">Canvi</span>
-              <span className="flex items-center gap-2 font-mono text-lg font-bold text-emerald-400">
-                {formatPrice(Math.max(change, 0))} <ChevronDown size={18} className={cn('transition-transform', cashOpen && 'rotate-180')} />
+              <span className="text-sm font-bold uppercase tracking-wide text-neutral-300">Total</span>
+              <span className="flex items-center gap-2 font-mono text-xl font-bold text-white">
+                {formatPrice(total)} <ChevronDown size={18} className={cn('transition-transform', cashOpen && 'rotate-180')} />
               </span>
             </button>
-            {cashOpen && <CashControls total={total} cash={state.cash} change={change} onCash={(amount) => dispatch({ type: 'cash', amount })} onReset={() => dispatch({ type: 'resetCash' })} />}
+            {cashOpen && <CashControls total={total} cash={state.cash} change={change} onCash={(amount) => dispatch({ type: 'cash', amount })} onReset={() => dispatch({ type: 'resetCash' })} showTotal={false} roomy />}
           </section>
         </div>
       </div>
