@@ -65,6 +65,7 @@ export function computeStandings(
     ]),
   );
 
+  // 1. Calculate overall stats
   for (const match of matches) {
     if (match.status !== 'finished' || match.homeScore == null || match.awayScore == null) continue;
     const home = match.homeTeamId ? rows.get(match.homeTeamId) : undefined;
@@ -96,15 +97,83 @@ export function computeStandings(
     }
   }
 
-  return [...rows.values()]
-    .map((row) => ({ ...row, diff: row.scored - row.conceded }))
-    .sort(
-      (a, b) =>
-        b.points - a.points ||
-        b.diff - a.diff ||
-        b.scored - a.scored ||
-        a.teamName.localeCompare(b.teamName, 'ca'),
+  const baseStandings = [...rows.values()].map((row) => ({ ...row, diff: row.scored - row.conceded }));
+
+  // 2. Group teams by overall points
+  const pointsGroups = new Map<number, string[]>();
+  for (const row of baseStandings) {
+    const group = pointsGroups.get(row.points) ?? [];
+    group.push(row.teamId);
+    pointsGroups.set(row.points, group);
+  }
+
+  // 3. Calculate Head-to-Head (H2H) stats for tied teams
+  const h2hStats = new Map<string, { points: number; diff: number; scored: number }>();
+  for (const [, tiedTeamIds] of pointsGroups.entries()) {
+    if (tiedTeamIds.length < 2) continue; // No tie
+
+    // Initialize H2H stats for this group
+    for (const teamId of tiedTeamIds) {
+      h2hStats.set(teamId, { points: 0, diff: 0, scored: 0 });
+    }
+
+    // Filter matches played *only* between these tied teams
+    const h2hMatches = matches.filter(
+      (m) =>
+        m.status === 'finished' &&
+        m.homeScore != null &&
+        m.awayScore != null &&
+        m.homeTeamId &&
+        m.awayTeamId &&
+        tiedTeamIds.includes(m.homeTeamId) &&
+        tiedTeamIds.includes(m.awayTeamId),
     );
+
+    for (const match of h2hMatches) {
+      const homeStats = h2hStats.get(match.homeTeamId!)!;
+      const awayStats = h2hStats.get(match.awayTeamId!)!;
+      const homeScore = match.homeScore!;
+      const awayScore = match.awayScore!;
+
+      homeStats.scored += homeScore;
+      awayStats.scored += awayScore;
+      homeStats.diff += homeScore - awayScore;
+      awayStats.diff += awayScore - homeScore;
+
+      if (homeScore > awayScore) {
+        homeStats.points += scoring.win;
+      } else if (awayScore > homeScore) {
+        awayStats.points += scoring.win;
+      } else {
+        homeStats.points += scoring.draw;
+        awayStats.points += scoring.draw;
+      }
+    }
+  }
+
+  // 4. Sort using the new FCF/UEFA criteria
+  return baseStandings.sort((a, b) => {
+    // Criteri 1: Punts generals
+    if (b.points !== a.points) return b.points - a.points;
+
+    // Criteri 2, 3 i 4: Mini-lliga (H2H) entre empatats
+    const aH2H = h2hStats.get(a.teamId);
+    const bH2H = h2hStats.get(b.teamId);
+    if (aH2H && bH2H) {
+      if (bH2H.points !== aH2H.points) return bH2H.points - aH2H.points;
+      if (bH2H.diff !== aH2H.diff) return bH2H.diff - aH2H.diff;
+      if (bH2H.scored !== aH2H.scored) return bH2H.scored - aH2H.scored;
+    }
+
+    // Criteri 5: Diferència de gols general
+    if (b.diff !== a.diff) return b.diff - a.diff;
+
+    // Criteri 6: Gols a favor general
+    if (b.scored !== a.scored) return b.scored - a.scored;
+
+    // Criteri 7: Ordre alfabètic
+    return a.teamName.localeCompare(b.teamName, 'ca');
+  });
 }
 
 /** Classificació de cada grup del torneig, en l'ordre en què estan definits. */
