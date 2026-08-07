@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /panell/
+Disallow: /barra/
+Disallow: /participa/
+Disallow: /login
+
+Sitemap: https://fm-aramunt.web.app/sitemap.xml
