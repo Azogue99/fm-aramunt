@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useReducer, useState } from 'react';
+import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCollection } from '../../hooks/useCollection';
@@ -56,20 +56,6 @@ function posReducer(state: PosState, action: PosAction): PosState {
     case 'clear':
       return { cart: [], cash: 0 };
   }
-}
-
-function useMobileLayout() {
-  const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
-
-  useEffect(() => {
-    const query = window.matchMedia('(max-width: 767px)');
-    const update = () => setMobile(query.matches);
-    update();
-    query.addEventListener('change', update);
-    return () => query.removeEventListener('change', update);
-  }, []);
-
-  return mobile;
 }
 
 const Pager: React.FC<{
@@ -144,13 +130,24 @@ const ProductMenu: React.FC<{
 
 const TicketLines: React.FC<{
   items: CartItem[];
-  empty: boolean;
   onRemove: (productId: string) => void;
-}> = ({ items, empty, onRemove }) => {
-  if (empty) return <p className="m-auto text-center text-xs text-neutral-500 sm:text-sm">Toca un producte per començar.</p>;
+}> = ({ items, onRemove }) => {
+  const listRef = useRef<HTMLUListElement>(null);
+  const lineCount = items.length;
+
+  // En afegir una línia nova, la baixem a la vista: qui cobra ha de veure
+  // sempre l'últim producte que acaba de tocar.
+  useEffect(() => {
+    const list = listRef.current;
+    if (list) list.scrollTop = list.scrollHeight;
+  }, [lineCount]);
+
+  if (lineCount === 0) {
+    return <p className="m-auto text-center text-xs text-neutral-500 sm:text-sm">Toca un producte per començar.</p>;
+  }
 
   return (
-    <ul className="flex min-h-0 flex-1 flex-col justify-center gap-1.5 overflow-hidden sm:gap-2">
+    <ul ref={listRef} className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain sm:gap-2">
       {items.map((item) => (
         <li key={item.product.id}>
           <button
@@ -222,25 +219,14 @@ export const BarPOS: React.FC = () => {
   const { data: products } = useCollection<BarProduct>(barProductsQuery(), []);
   const [state, dispatch] = useReducer(posReducer, { cart: [], cash: 0 });
   const [productPage, setProductPage] = useState(0);
-  const [cartPage, setCartPage] = useState(0);
   const [cashOpen, setCashOpen] = useState(false);
-  const mobile = useMobileLayout();
-  const cartItemsPerPage = mobile ? 1 : 6;
   const productPageCount = Math.max(1, Math.ceil(products.length / PRODUCTS_PER_PAGE));
-  const cartPageCount = Math.max(1, Math.ceil(state.cart.length / cartItemsPerPage));
-  const visibleCart = state.cart.slice(cartPage * cartItemsPerPage, (cartPage + 1) * cartItemsPerPage);
   const total = useMemo(() => state.cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0), [state.cart]);
   const change = state.cash - total;
 
   useEffect(() => setProductPage((page) => Math.min(page, productPageCount - 1)), [productPageCount]);
-  useEffect(() => setCartPage((page) => Math.min(page, cartPageCount - 1)), [cartPageCount]);
 
-  const addProduct = (product: BarProduct) => {
-    const isNewLine = !state.cart.some((item) => item.product.id === product.id);
-    const nextLineCount = state.cart.length + Number(isNewLine);
-    dispatch({ type: 'add', product });
-    setCartPage(Math.floor((nextLineCount - 1) / cartItemsPerPage));
-  };
+  const addProduct = (product: BarProduct) => dispatch({ type: 'add', product });
 
   const ticket = (
     <>
@@ -257,8 +243,7 @@ export const BarPOS: React.FC = () => {
         </button>
       </header>
       <div className="flex min-h-0 flex-1 flex-col p-1.5 sm:p-2">
-        <Pager page={cartPage} pageCount={cartPageCount} onChange={setCartPage} label="tiquet" />
-        <TicketLines items={visibleCart} empty={state.cart.length === 0} onRemove={(productId) => dispatch({ type: 'remove', productId })} />
+        <TicketLines items={state.cart} onRemove={(productId) => dispatch({ type: 'remove', productId })} />
       </div>
     </>
   );
