@@ -313,30 +313,150 @@ export async function writePlan(plan: PlannedMatch[], uid: string) {
   await batch.commit();
 }
 
-/** Resol automàticament els "byes" d'una eliminatòria directa. */
-export async function advanceByes(tournamentId: string, uid: string) {
-  // Cada passada pot omplir la ronda següent; amb 16 equips en calen com a màxim quatre.
-  for (let pass = 0; pass < 8; pass++) {
-    const snapshot = await getDocs(
-      query(
-        collection(db, MATCHES),
-        where('tournamentId', '==', tournamentId),
-        where('phase', '==', 'knockout'),
-      ),
-    );
-    const byes = snapshot.docs
-      .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Match))
-      .filter(
-        (match) =>
-          match.status === 'scheduled' &&
-          Boolean(match.homeTeamId) !== Boolean(match.awayTeamId),
-      );
+/**
+ * Un slot del quadre pot estar en tres estats ben diferents, i confondre'ls és
+ * el que feia que un equip guanyés rondes que encara no s'havien jugat:
+ *  - ocupat per un equip,
+ *  - BUIT: plaça sobrant del quadre (ningú hi arribarà mai) → l'altre passa per bye,
+ *  - PENDENT: espera el resultat d'un partit anterior → no s'hi pot tocar.
+ */
+const BYE = Symbol('slot buit');
+const PENDING = Symbol('slot pendent');
+type Slot = string | typeof BYE | typeof PENDING;
 
-    if (byes.length === 0) return;
-    for (const match of byes) {
-      await saveResult(match, match.homeTeamId ? 1 : 0, match.awayTeamId ? 1 : 0, uid);
+interface Outcome {
+  winner: Slot;
+  loser: Slot;
+}
+
+/** Qui ocupa un costat d'un partit, mirant enrere pel quadre si cal. */
+function occupantOf(
+  teamId: string | null,
+  source: MatchSource | null,
+  byId: Map<string, Match>,
+  cache: Map<string, Outcome>,
+  seen: Set<string>,
+): Slot {
+  if (teamId) return teamId;
+  // Sense equip i sense origen: és una plaça sobrant del quadre.
+  if (!source) return BYE;
+  // Els classificats de grup no es resolen mai automàticament.
+  if (source.type === 'groupPos') return PENDING;
+
+  const origin = byId.get(source.matchId);
+  if (!origin) return BYE; // El partit d'origen s'ha esborrat (era un doble bye).
+
+  const outcome = resolveOutcome(origin, byId, cache, seen);
+  return source.type === 'winner' ? outcome.winner : outcome.loser;
+}
+
+function resolveOutcome(
+  match: Match,
+  byId: Map<string, Match>,
+  cache: Map<string, Outcome>,
+  seen: Set<string>,
+): Outcome {
+  const cached = cache.get(match.id);
+  if (cached) return cached;
+  if (seen.has(match.id)) return { winner: PENDING, loser: PENDING }; // guarda contra cicles
+
+  seen.add(match.id);
+
+  let outcome: Outcome;
+
+  if (match.status === 'finished' && match.homeScore != null && match.awayScore != null) {
+    const winner = winnerOf(match);
+    outcome = winner
+      ? { winner, loser: (winner === match.homeTeamId ? match.awayTeamId : match.homeTeamId) ?? BYE }
+      : { winner: PENDING, loser: PENDING }; // empat sense desempatar
+  } else {
+    const home = occupantOf(match.homeTeamId, match.homeSource, byId, cache, seen);
+    const away = occupantOf(match.awayTeamId, match.awaySource, byId, cache, seen);
+
+    if (home === BYE && away === BYE) outcome = { winner: BYE, loser: BYE };
+    else if (away === BYE && typeof home === 'string') outcome = { winner: home, loser: BYE };
+    else if (home === BYE && typeof away === 'string') outcome = { winner: away, loser: BYE };
+    else outcome = { winner: PENDING, loser: PENDING };
+  }
+
+  cache.set(match.id, outcome);
+  return outcome;
+}
+
+/**
+ * Resol les places sobrants d'una eliminatòria amb menys equips que slots.
+ *
+ * Ho calcula tot en memòria i ho desa en un sol batch: un partit només es dona
+ * per guanyat quan el rival és una plaça sobrant confirmada, mai quan encara
+ * s'espera el resultat d'una ronda anterior.
+ */
+export async function advanceByes(tournamentId: string, uid: string) {
+  const snapshot = await getDocs(
+    query(
+      collection(db, MATCHES),
+      where('tournamentId', '==', tournamentId),
+      where('phase', '==', 'knockout'),
+    ),
+  );
+
+  const matches = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as Match);
+  const byId = new Map(matches.map((match) => [match.id, match]));
+  const cache = new Map<string, Outcome>();
+
+  const batch = writeBatch(db);
+  let dirty = false;
+
+  for (const match of matches) {
+    if (match.status === 'finished') continue;
+
+    const home = occupantOf(match.homeTeamId, match.homeSource, byId, cache, new Set());
+    const away = occupantOf(match.awayTeamId, match.awaySource, byId, cache, new Set());
+    const ref = doc(db, MATCHES, match.id);
+
+    // Partit fantasma: cap dels dos costats s'omplirà mai.
+    if (home === BYE && away === BYE) {
+      batch.delete(ref);
+      dirty = true;
+      continue;
+    }
+
+    // Un consol pel 3r lloc amb un sol aspirant no té sentit.
+    if (match.round === 'tercer' && (home === BYE || away === BYE)) {
+      batch.delete(ref);
+      dirty = true;
+      continue;
+    }
+
+    const patch: Record<string, unknown> = {};
+
+    if (typeof home === 'string' && match.homeTeamId !== home) patch.homeTeamId = home;
+    if (typeof away === 'string' && match.awayTeamId !== away) patch.awayTeamId = away;
+
+    // Fixem el bye al document perquè la funció sigui idempotent: en una segona
+    // passada el costat buit ja no arrossega cap origen pendent.
+    if (home === BYE && match.homeSource !== null) patch.homeSource = null;
+    if (away === BYE && match.awaySource !== null) patch.awaySource = null;
+
+    // Passa de ronda només si el rival és una plaça sobrant confirmada.
+    if (typeof home === 'string' && away === BYE) {
+      patch.homeScore = 1;
+      patch.awayScore = 0;
+      patch.status = 'finished' satisfies MatchStatus;
+    } else if (typeof away === 'string' && home === BYE) {
+      patch.homeScore = 0;
+      patch.awayScore = 1;
+      patch.status = 'finished' satisfies MatchStatus;
+    }
+
+    if (Object.keys(patch).length > 0) {
+      patch.updatedAt = serverTimestamp();
+      patch.updatedBy = uid;
+      batch.update(ref, patch);
+      dirty = true;
     }
   }
+
+  if (dirty) await batch.commit();
 }
 
 export async function writeDrafts(drafts: MatchDraft[], uid: string) {

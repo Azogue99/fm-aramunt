@@ -9,7 +9,7 @@ import { useTournaments } from '../../hooks/useTournament';
 import { findTeamByInviteCode, joinTeam } from '../../services/teams';
 import type { Team } from '../../types';
 
-type Blocker = 'not-found' | 'closed' | 'full' | 'already-in' | null;
+type Blocker = 'not-found' | 'closed' | 'registration-closed' | 'full' | 'already-in' | null;
 
 export const JoinTeamPage: React.FC = () => {
   const { code } = useParams<{ code: string }>();
@@ -58,13 +58,18 @@ export const JoinTeamPage: React.FC = () => {
   const alreadyIn = user ? team.memberUids.includes(user.uid) : false;
   const full = tournament ? team.members.length >= tournament.maxPlayers : false;
 
+  // Les regles de Firestore també exigeixen que el torneig tingui les
+  // inscripcions obertes; sense comprovar-ho aquí, el botó fallava amb un error
+  // genèric de permisos en comptes d'explicar què passa.
   const blocker: Blocker = alreadyIn
     ? 'already-in'
-    : !team.inviteEnabled
-      ? 'closed'
-      : full
-        ? 'full'
-        : null;
+    : tournament && !tournament.registrationOpen
+      ? 'registration-closed'
+      : !team.inviteEnabled
+        ? 'closed'
+        : full
+          ? 'full'
+          : null;
 
   const handleJoin = async () => {
     if (!user) return;
@@ -112,6 +117,12 @@ export const JoinTeamPage: React.FC = () => {
 
         {blocker === 'closed' && (
           <Message text="El capità ha tancat les invitacions d'aquest equip. Parla-hi directament." />
+        )}
+
+        {blocker === 'registration-closed' && (
+          <Message
+            text={`Les inscripcions del ${tournament?.name ?? 'torneig'} ja estan tancades. Si hi voleu entrar igualment, parleu-ho amb la comissió.`}
+          />
         )}
 
         {blocker === 'full' && (

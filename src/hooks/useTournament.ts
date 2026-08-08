@@ -5,8 +5,23 @@ import { teamsByTournamentQuery } from '../services/teams';
 import { tournamentsQuery } from '../services/tournaments';
 import type { Match, Standing, Team, Tournament, TournamentScoring } from '../types';
 
+/**
+ * Els tornejos són edicions anuals (`futbol-2026`, `futbol-2027`…), així que
+ * l'edició vigent ha de sortir sempre la primera; el camp `order` només ordena
+ * els esports dins d'un mateix any.
+ */
 export function useTournaments() {
-  return useCollection<Tournament>(tournamentsQuery(), []);
+  const { data, loading, error } = useCollection<Tournament>(tournamentsQuery(), []);
+  const sorted = useMemo(
+    () => [...data].sort((a, b) => b.year - a.year || a.order - b.order),
+    [data],
+  );
+  return { data: sorted, loading, error };
+}
+
+/** L'any més recent que té algun torneig, o l'actual si encara no n'hi ha cap. */
+export function currentEditionYear(tournaments: Tournament[]): number {
+  return tournaments.reduce((max, item) => Math.max(max, item.year), 0) || new Date().getFullYear();
 }
 
 export function useTournamentBySlug(slug: string | undefined) {
