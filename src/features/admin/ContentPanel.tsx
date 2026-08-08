@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { PanelHeader } from '../../components/layout/AdminLayout';
 import { Button } from '../../components/ui/Button';
 import { Input, Textarea } from '../../components/ui/Field';
 import { useFeedback } from '../../components/ui/Feedback';
 import { useSiteContent } from '../../hooks/useSiteContent';
-import { resetContent, saveContent } from '../../services/content';
+import { DEFAULT_CONTENT, resetContent, saveContent } from '../../services/content';
 import type { ProgramEntry, SiteContent } from '../../types';
 
 interface LocalEntry {
@@ -33,27 +33,32 @@ export const ContentPanel: React.FC = () => {
   const [localDays, setLocalDays] = useState<LocalDay[]>([]);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!loading) {
-      setDraft(content);
-      
-      const groups: LocalDay[] = [];
-      for (const entry of (content.programa ?? [])) {
-        let group = groups.find((g) => g.day === entry.day);
-        if (!group) {
-          group = { id: generateId(), day: entry.day, collapsed: false, entries: [] };
-          groups.push(group);
-        }
-        group.entries.push({
-          id: generateId(),
-          time: entry.time,
-          order: entry.order,
-          title: entry.title,
-          detail: entry.detail ?? '',
-        });
+  /** Passa el programa pla de Firestore a l'estructura per dies de l'editor. */
+  const loadFromContent = useCallback((source: SiteContent) => {
+    setDraft(source);
+
+    const groups: LocalDay[] = [];
+    for (const entry of source.programa ?? []) {
+      let group = groups.find((g) => g.day === entry.day);
+      if (!group) {
+        group = { id: generateId(), day: entry.day, collapsed: false, entries: [] };
+        groups.push(group);
       }
-      setLocalDays(groups);
+      group.entries.push({
+        id: generateId(),
+        time: entry.time,
+        order: entry.order,
+        title: entry.title,
+        detail: entry.detail ?? '',
+      });
     }
+    setLocalDays(groups);
+  }, []);
+
+  useEffect(() => {
+    if (!loading) loadFromContent(content);
+    // Només en acabar la càrrega inicial: si depengués de `content`, cada
+    // snapshot trepitjaria el que l'usuari està escrivint.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
@@ -176,8 +181,10 @@ export const ContentPanel: React.FC = () => {
     setSaving(true);
     try {
       await resetContent();
+      // El listener no torna a passar per `loading`, així que l'editor s'ha de
+      // repoblar aquí; si no, es quedaria mostrant el programa que acabem d'esborrar.
+      loadFromContent(DEFAULT_CONTENT);
       toast('Contingut restablert als valors per defecte.');
-      // Refresh will happen via the listener (useSiteContent)
     } catch (error) {
       console.error(error);
       toast("No s'ha pogut restablir el contingut.", 'error');
